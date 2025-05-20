@@ -237,15 +237,69 @@ public:
         writeLogToFile(logEntry);
     }
 
-    void logReservationAction(const string& role, const string& username, const string& action, const string& details) {
+    void logReservationAction(const string& role, const string& username, const string& action, const string& details,
+                              const string& id = "", const string& customerName = "", const string& phoneNumber = "",
+                              int partySize = 0, const string& date = "", const string& time = "", int tableNumber = -1) {
         string timestamp = getCurrentTimestamp();
         string logEntry = timestamp + " [" + role + ": " + username + "] " + action + " " + details;
+        
+        // Append reservation details if provided (for reservation-related actions)
+        if (!id.empty()) {
+            logEntry += " [Reservation: ID: " + id;
+            if (!customerName.empty()) logEntry += ", Name: " + customerName;
+            if (!phoneNumber.empty()) logEntry += ", Contact: " + phoneNumber;
+            if (partySize > 0) logEntry += ", Party Size: " + to_string(partySize);
+            if (!date.empty()) logEntry += ", Date: " + date;
+            if (!time.empty()) logEntry += ", Time: " + time;
+            if (tableNumber >= 0) logEntry += ", Table: " + to_string(tableNumber + 1);
+            logEntry += "]";
+        }
+        
         writeLogToFile(logEntry);
     }
 
-    void logError(const string& role, const string& username, const string& action, const string& errorMsg) {
+    void logError(const string& role, const string& username, const string& action, const string& errorMsg,
+                  const string& id = "", const string& customerName = "", const string& phoneNumber = "",
+                  int partySize = 0, const string& date = "", const string& time = "", int tableNumber = -1) {
         string timestamp = getCurrentTimestamp();
         string logEntry = timestamp + " [" + role + ": " + username + "] " + action + " Error: " + errorMsg;
+        
+        // Append available reservation details if provided
+        bool hasDetails = !id.empty() || !customerName.empty() || !phoneNumber.empty() || 
+                         partySize > 0 || !date.empty() || !time.empty() || tableNumber >= 0;
+        if (hasDetails) {
+            logEntry += " [Details: ";
+            bool first = true;
+            if (!id.empty()) {
+                logEntry += "ID: " + id;
+                first = false;
+            }
+            if (!customerName.empty()) {
+                logEntry += (first ? "" : ", ") + string("Name: ") + customerName;
+                first = false;
+            }
+            if (!phoneNumber.empty()) {
+                logEntry += (first ? "" : ", ") + string("Contact: ") + phoneNumber;
+                first = false;
+            }
+            if (partySize > 0) {
+                logEntry += (first ? "" : ", ") + string("Party Size: ") + to_string(partySize);
+                first = false;
+            }
+            if (!date.empty()) {
+                logEntry += (first ? "" : ", ") + string("Date: ") + date;
+                first = false;
+            }
+            if (!time.empty()) {
+                logEntry += (first ? "" : ", ") + string("Time: ") + time;
+                first = false;
+            }
+            if (tableNumber >= 0) {
+                logEntry += (first ? "" : ", ") + string("Table: ") + to_string(tableNumber + 1);
+            }
+            logEntry += "]";
+        }
+        
         writeLogToFile(logEntry);
     }
 
@@ -297,8 +351,9 @@ public:
 
         reservations.emplace_back(reservationId, customerName, phoneNumber, partySize, date, time, tableNumber);
         saveReservations();
-        logReservationAction("Customer", customerName, "Reserved table", "#" + to_string(tableNumber + 1) + " for " + 
-                            to_string(partySize) + " on " + date + " at " + time);
+        logReservationAction("Customer", customerName, "Reserved table", 
+                            "#" + to_string(tableNumber + 1) + " for " + to_string(partySize) + " on " + date + " at " + time,
+                            reservationId, customerName, phoneNumber, partySize, date, time, tableNumber);
         return tableNumber;
     }
 
@@ -309,10 +364,16 @@ public:
         }
         bool hasReservation = false;
         int tableIndex = -1;
+        string phoneNumber, date, time;
+        int partySize;
         for (const auto& res : reservations) {
             if (res.id == upperId) {
                 hasReservation = true;
                 tableIndex = res.tableNumber;
+                phoneNumber = res.phoneNumber;
+                partySize = res.partySize;
+                date = res.date;
+                time = res.time;
                 break;
             }
         }
@@ -329,7 +390,8 @@ public:
             }
         }
         saveReservations();
-        logReservationAction("Customer", customerName, "Cancelled reservation", "ID " + upperId);
+        logReservationAction("Customer", customerName, "Cancelled reservation", "ID " + upperId,
+                            upperId, customerName, phoneNumber, partySize, date, time, tableIndex);
     }
 
     void viewCustomerReservations(const string& customerName) {
@@ -410,20 +472,49 @@ public:
             newTableIndex = oldTableIndex;
         }
 
+        string finalId = upperId;
+        string finalName = customerName;
+        string finalPhone = "";
+        int finalPartySize = 0;
+        string finalDate = "";
+        string finalTime = "";
         for (auto& res : reservations) {
             if (res.id == upperId) {
-                if (upperNewId != "0") res.id = upperNewId;
-                if (newName != "0") res.customerName = newName;
-                if (newPhone != "0") res.phoneNumber = newPhone;
-                if (newPartySize != 0) res.partySize = newPartySize;
-                if (newDate != "0") res.date = newDate;
-                if (newTime != "0") res.time = newTime;
+                finalPhone = res.phoneNumber;
+                finalPartySize = res.partySize;
+                finalDate = res.date;
+                finalTime = res.time;
+                if (upperNewId != "0") {
+                    res.id = upperNewId;
+                    finalId = upperNewId;
+                }
+                if (newName != "0") {
+                    res.customerName = newName;
+                    finalName = newName;
+                }
+                if (newPhone != "0") {
+                    res.phoneNumber = newPhone;
+                    finalPhone = newPhone;
+                }
+                if (newPartySize != 0) {
+                    res.partySize = newPartySize;
+                    finalPartySize = newPartySize;
+                }
+                if (newDate != "0") {
+                    res.date = newDate;
+                    finalDate = newDate;
+                }
+                if (newTime != "0") {
+                    res.time = newTime;
+                    finalTime = newTime;
+                }
                 res.tableNumber = newTableIndex;
                 break;
             }
         }
         saveReservations();
-        logReservationAction("Customer", customerName, "Updated reservation", "ID " + upperId);
+        logReservationAction("Customer", customerName, "Updated reservation", "ID " + upperId,
+                            finalId, finalName, finalPhone, finalPartySize, finalDate, finalTime, newTableIndex);
     }
 
     void viewLogs() {
@@ -500,7 +591,8 @@ public:
                             break;
                         }
                         cout << "Error: Invalid phone number format. Use XXX-XXX-XXXX.\n";
-                        ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", "Invalid phone number format.");
+                        ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", 
+                                                                  "Invalid phone number format.", "", username, phoneNumber);
                     }
 
                     while (true) {
@@ -508,12 +600,14 @@ public:
                         getline(cin, partySizeInput);
                         if (!validateNumericInput(partySizeInput, partySize, 1, INT_MAX)) {
                             cout << "Error: Invalid party size. Must be a single number >= 1 (e.g., 2, not 2a, 2.1, or 2 2).\n";
-                            ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", "Invalid party size.");
+                            ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", 
+                                                                      "Invalid party size.", "", username, phoneNumber);
                             continue;
                         }
                         if (!validatePartySize(partySize)) {
                             cout << "Error: Party size must be at least 1.\n";
-                            ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", "Party size must be at least 1.");
+                            ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", 
+                                                                      "Party size must be at least 1.", "", username, phoneNumber, partySize);
                             continue;
                         }
                         break;
@@ -526,7 +620,9 @@ public:
                             break;
                         }
                         cout << "Error: Invalid date format (use YYYY-MM-DD) or date is in the past.\n";
-                        ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", "Invalid date format or date is in the past.");
+                        ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", 
+                                                                 "Invalid date format or date is in the past.", 
+                                                                 "", username, phoneNumber, partySize, date);
                     }
 
                     while (true) {
@@ -536,7 +632,9 @@ public:
                             break;
                         }
                         cout << "Error: Invalid time format (use HH:MM) or time is in the past for today.\n";
-                        ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", "Invalid time format or time is in the past.");
+                        ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", 
+                                                                 "Invalid time format or time is in the past.", 
+                                                                 "", username, phoneNumber, partySize, date, time);
                     }
 
                     bool reservationComplete = false;
@@ -555,7 +653,9 @@ public:
 
                         if (!validateNumericInput(tableInput, tableNumber, 1, 10)) {
                             cout << "Error: Invalid table number. Must be a single number between 1 and 10 (e.g., 1, not 1a, 1.1, or 1 1).\n";
-                            ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", "Invalid table number.");
+                            ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", 
+                                                                     "Invalid table number.", 
+                                                                     "", username, phoneNumber, partySize, date, time);
                             continue;
                         }
                         tableNumber--; // Convert to 0-based index
@@ -567,11 +667,12 @@ public:
                         } catch (const ReservationException& ex) {
                             if (string(ex.what()) == "Selected table is already booked.") {
                                 cout << "Error: Selected table is already booked. Please choose a different table.\n";
-                                ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", ex.what());
+                                ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", 
+                                                                         ex.what(), "", username, phoneNumber, partySize, date, time, tableNumber);
                             } else {
-                                // Other errors (e.g., invalid phone, date, etc.) should exit to menu
                                 cout << "Error: " << ex.what() << endl;
-                                ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", ex.what());
+                                ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", 
+                                                                         ex.what(), "", username, phoneNumber, partySize, date, time, tableNumber);
                                 cout << "Reservation failed. Returning to menu.\n";
                                 reservationComplete = true;
                             }
@@ -589,7 +690,7 @@ public:
                     }
 
                     string reservationId, newId, newName, newPhone, newDate, newTime, newPartySizeInput, newTableChoiceInput;
-                    int newPartySize, newTableChoice;
+                    int newPartySize = 0, newTableChoice = 0, newTableIndex = -1;
 
                     while (true) {
                         cout << "Enter reservation ID to update (e.g., ID 1A): ";
@@ -613,7 +714,8 @@ public:
                             break;
                         } catch (const ReservationException& ex) {
                             cout << "Error: " << ex.what() << endl;
-                            ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", ex.what());
+                            ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", 
+                                                                     ex.what(), reservationId, username);
                         }
                     }
 
@@ -632,7 +734,8 @@ public:
                             break;
                         } catch (const ReservationException& ex) {
                             cout << "Error: " << ex.what() << endl;
-                            ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", ex.what());
+                            ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", 
+                                                                     ex.what(), reservationId, username);
                         }
                     }
 
@@ -648,7 +751,8 @@ public:
                         if (newPhone == "0") break;
                         if (validatePhoneNumber(newPhone)) break;
                         cout << "Error: Invalid phone number format. Use XXX-XXX-XXXX.\n";
-                        ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", "Invalid phone number format.");
+                        ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", 
+                                                                 "Invalid phone number format.", reservationId, username, newPhone);
                     }
 
                     while (true) {
@@ -660,12 +764,14 @@ public:
                         }
                         if (!validateNumericInput(newPartySizeInput, newPartySize, 1, INT_MAX)) {
                             cout << "Error: Invalid party size. Must be a single number >= 1 (e.g., 2, not 2a, 2.1, or 2 2).\n";
-                            ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", "Invalid party size.");
+                            ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", 
+                                                                     "Invalid party size.", reservationId, username, newPhone, newPartySize);
                             continue;
                         }
                         if (!validatePartySize(newPartySize)) {
                             cout << "Error: Party size must be at least 1.\n";
-                            ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", "Party size must be at least 1.");
+                            ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", 
+                                                                     "Party size must be at least 1.", reservationId, username, newPhone, newPartySize);
                             continue;
                         }
                         break;
@@ -677,7 +783,9 @@ public:
                         if (newDate == "0") break;
                         if (validateDate(newDate)) break;
                         cout << "Error: Invalid date format (use YYYY-MM-DD) or date is in the past.\n";
-                        ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", "Invalid date format or date is in the past.");
+                        ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", 
+                                                                 "Invalid date format or date is in the past.", 
+                                                                 reservationId, username, newPhone, newPartySize, newDate);
                     }
 
                     while (true) {
@@ -686,7 +794,9 @@ public:
                         if (newTime == "0") break;
                         if (validateTime(newTime, newDate != "0" ? newDate : CURRENT_DATE)) break;
                         cout << "Error: Invalid time format (use HH:MM) or time is in the past for today.\n";
-                        ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", "Invalid time format or time is in the past.");
+                        ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", 
+                                                                 "Invalid time format or time is in the past.", 
+                                                                 reservationId, username, newPhone, newPartySize, newDate, newTime);
                     }
 
                     while (true) {
@@ -696,7 +806,9 @@ public:
                         getline(cin, newTableChoiceInput);
                         if (!validateNumericInput(newTableChoiceInput, newTableChoice, 0, 10)) {
                             cout << "Error: Invalid table choice. Must be a single number between 0 and 10 (e.g., 1, not 1a, 1.1, or 1 1).\n";
-                            ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", "Invalid table choice.");
+                            ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", 
+                                                                     "Invalid table choice.", 
+                                                                     reservationId, username, newPhone, newPartySize, newDate, newTime);
                             continue;
                         }
                         break;
@@ -712,7 +824,6 @@ public:
                     }
 
                     try {
-                        int newTableIndex = -1;
                         if (newTableChoice != 0) {
                             newTableIndex = newTableChoice - 1;
                         }
@@ -722,7 +833,8 @@ public:
                         cout << "Reservation updated successfully.\n";
                     } catch (const ReservationException& ex) {
                         cout << "Error: " << ex.what() << endl;
-                        ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", ex.what());
+                        ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", 
+                                                                 ex.what(), reservationId, username, newPhone, newPartySize, newDate, newTime, newTableIndex);
                         cout << "Update failed. Returning to menu.\n";
                     }
                     break;
@@ -734,9 +846,9 @@ public:
                     }
 
                     bool processComplete = false;
+                    string reservationId;
                     while (!processComplete) {
                         try {
-                            string reservationId;
                             cout << "Enter reservation ID to cancel (e.g., ID 1A): ";
                             getline(cin, reservationId);
                             reservationId = toUpperCase(reservationId);
@@ -759,7 +871,8 @@ public:
                             processComplete = true;
                         } catch (const ReservationException& ex) {
                             cout << "Error: " << ex.what() << endl;
-                            ReservationManager::getInstance().logError("Customer", username, "Failed to cancel reservation", ex.what());
+                            ReservationManager::getInstance().logError("Customer", username, "Failed to cancel reservation", 
+                                                                     ex.what(), reservationId, username);
                             cout << "Please try again.\n";
                         }
                     }
@@ -904,7 +1017,7 @@ public:
                     }
 
                     string reservationId, newId, newName, newPhone, newDate, newTime, newPartySizeInput, newTableChoiceInput;
-                    int newPartySize, newTableChoice;
+                    int newPartySize = 0, newTableChoice = 0, newTableIndex = -1;
                     string customerName;
 
                     // Prompt for reservation ID first
@@ -945,7 +1058,8 @@ public:
                             break;
                         } catch (const ReservationException& ex) {
                             cout << "Error: " << ex.what() << endl;
-                            ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", ex.what());
+                            ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", 
+                                                                     ex.what(), reservationId);
                         }
                     }
 
@@ -964,7 +1078,8 @@ public:
                             break;
                         } catch (const ReservationException& ex) {
                             cout << "Error: " << ex.what() << endl;
-                            ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", ex.what());
+                            ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", 
+                                                                     ex.what(), reservationId);
                         }
                     }
 
@@ -980,7 +1095,8 @@ public:
                         if (newPhone == "0") break;
                         if (validatePhoneNumber(newPhone)) break;
                         cout << "Error: Invalid phone number format. Use XXX-XXX-XXXX.\n";
-                        ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", "Invalid phone number format.");
+                        ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", 
+                                                                 "Invalid phone number format.", reservationId, newName, newPhone);
                     }
 
                     while (true) {
@@ -992,12 +1108,14 @@ public:
                         }
                         if (!validateNumericInput(newPartySizeInput, newPartySize, 1, INT_MAX)) {
                             cout << "Error: Invalid party size. Must be a single number >= 1 (e.g., 2, not 2a, 2.1, or 2 2).\n";
-                            ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", "Invalid party size.");
+                            ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", 
+                                                                     "Invalid party size.", reservationId, newName, newPhone, newPartySize);
                             continue;
                         }
                         if (!validatePartySize(newPartySize)) {
                             cout << "Error: Party size must be at least 1.\n";
-                            ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", "Party size must be at least 1.");
+                            ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", 
+                                                                     "Party size must be at least 1.", reservationId, newName, newPhone, newPartySize);
                             continue;
                         }
                         break;
@@ -1009,7 +1127,9 @@ public:
                         if (newDate == "0") break;
                         if (validateDate(newDate)) break;
                         cout << "Error: Invalid date format (use YYYY-MM-DD) or date is in the past.\n";
-                        ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", "Invalid date format or date is in the past.");
+                        ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", 
+                                                                 "Invalid date format or date is in the past.", 
+                                                                 reservationId, newName, newPhone, newPartySize, newDate);
                     }
 
                     while (true) {
@@ -1018,7 +1138,9 @@ public:
                         if (newTime == "0") break;
                         if (validateTime(newTime, newDate != "0" ? newDate : CURRENT_DATE)) break;
                         cout << "Error: Invalid time format (use HH:MM) or time is in the past for today.\n";
-                        ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", "Invalid time format or time is in the past.");
+                        ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", 
+                                                                 "Invalid time format or time is in the past.", 
+                                                                 reservationId, newName, newPhone, newPartySize, newDate, newTime);
                     }
 
                     while (true) {
@@ -1028,7 +1150,9 @@ public:
                         getline(cin, newTableChoiceInput);
                         if (!validateNumericInput(newTableChoiceInput, newTableChoice, 0, 10)) {
                             cout << "Error: Invalid table choice. Must be a single number between 0 and 10 (e.g., 1, not 1a, 1.1, or 1 1).\n";
-                            ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", "Invalid table choice.");
+                            ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", 
+                                                                     "Invalid table choice.", 
+                                                                     reservationId, newName, newPhone, newPartySize, newDate, newTime);
                             continue;
                         }
                         break;
@@ -1044,7 +1168,6 @@ public:
                     }
 
                     try {
-                        int newTableIndex = -1;
                         if (newTableChoice != 0) {
                             newTableIndex = newTableChoice - 1;
                         }
@@ -1052,10 +1175,12 @@ public:
                                                                             newId, newName, newPhone, newPartySize, 
                                                                             newDate, newTime, newTableIndex);
                         cout << "Reservation updated successfully.\n";
-                        ReservationManager::getInstance().logReservationAction("Admin", username, "Updated reservation", "ID " + reservationId);
+                        ReservationManager::getInstance().logReservationAction("Admin", username, "Updated reservation", 
+                                                                             "ID " + reservationId);
                     } catch (const ReservationException& ex) {
                         cout << "Error: " << ex.what() << endl;
-                        ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", ex.what());
+                        ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", 
+                                                                 ex.what(), reservationId, newName, newPhone, newPartySize, newDate, newTime, newTableIndex);
                         cout << "Update failed. Returning to menu.\n";
                     }
                     break;
@@ -1068,9 +1193,9 @@ public:
                     }
 
                     bool processComplete = false;
+                    string reservationId;
                     while (!processComplete) {
                         try {
-                            string reservationId;
                             string customerName;
                             cout << "Enter reservation ID to cancel (e.g., ID 1A): ";
                             getline(cin, reservationId);
@@ -1120,11 +1245,13 @@ public:
 
                             ReservationManager::getInstance().cancelReservation(reservationId, customerName);
                             cout << "Reservation cancelled.\n";
-                            ReservationManager::getInstance().logReservationAction("Admin", username, "Cancelled reservation", "ID " + reservationId);
+                            ReservationManager::getInstance().logReservationAction("Admin", username, "Cancelled reservation", 
+                                                                                 "ID " + reservationId);
                             processComplete = true;
                         } catch (const ReservationException& ex) {
                             cout << "Error: " << ex.what() << endl;
-                            ReservationManager::getInstance().logError("Admin", username, "Failed to cancel reservation", ex.what());
+                            ReservationManager::getInstance().logError("Admin", username, "Failed to cancel reservation", 
+                                                                     ex.what(), reservationId);
                             cout << "Please try again.\n";
                         }
                     }
@@ -1145,7 +1272,8 @@ public:
                     getline(cin, recPassword);
                     receptionistAccounts[recUsername] = recPassword;
                     cout << "Receptionist account created.\n";
-                    ReservationManager::getInstance().logReservationAction("Admin", username, "Created receptionist account", "Username: " + recUsername);
+                    ReservationManager::getInstance().logReservationAction("Admin", username, "Created receptionist account", 
+                                                                         "Username: " + recUsername);
                     break;
                 }
                 case 7: {
