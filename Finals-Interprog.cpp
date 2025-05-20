@@ -562,8 +562,8 @@ public:
             int choice;
             cout << "\n[Customer Menu - " << username << "]\n";
             cout << "1. View My Reservations\n";
-            cout << "2. Reserve Table\n";
-            cout << "3. View Availability\n";
+            cout << "2. View Availability\n";
+            cout << "3. Reserve Table\n";
             cout << "4. Update Reservation\n";
             cout << "5. Cancel Reservation\n";
             cout << "6. Exit\nChoice: ";
