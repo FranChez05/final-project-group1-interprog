@@ -669,7 +669,6 @@ public:
 class Receptionist : public User {
 public:
     Receptionist(const string& name) : User(name, "Receptionist") {}
-    
     bool showMenu() override {
         bool isRunning = true;
         while (isRunning) {
@@ -685,39 +684,17 @@ public:
             }
 
             switch (choice) {
-                case 1: {
-                    cout << "\n--- Current Reservations ---\n";
-                    vector<Reservation> allReservations = ReservationManager::getInstance().getAllReservations();
-                    
-                    if (allReservations.empty()) {
-                        cout << "No reservations found.\n";
-                    } else {
-                        // Display header
-                        cout << "ID\t\tCustomer\tParty\tDate\t\tTime\tContact\t\tTable\n";
-                        
-                        // Display each reservation
-                        for (const auto& res : allReservations) {
-                            cout << res.id << "\t" 
-                                 << res.customerName << "\t"
-                                 << res.partySize << "\t"
-                                 << res.date << "\t"
-                                 << res.time << "\t"
-                                 << res.phoneNumber << "\t"
-                                 << (res.tableNumber + 1) << endl;
-                        }
-                    }
+                case 1:
+                    ReservationManager::getInstance().viewLogs();
                     break;
-                }
                 case 2:
                     ReservationManager::getInstance().viewTableAvailability();
                     break;
                 case 3: {
                     string logout;
-                    cout << "Logout? (Y/N): ";
+                    cout << "Logout? Yes or No: ";
                     getline(cin, logout);
-                    // Convert to lowercase for case-insensitive comparison
-                    transform(logout.begin(), logout.end(), logout.begin(), ::tolower);
-                    if (logout == "yes" || logout == "y") {
+                    if (logout == "Yes" || logout == "yes") {
                         return true; // Logout
                     }
                     break; // Continue in menu
@@ -728,3 +705,176 @@ public:
     }
 };
 
+class Admin : public User {
+public:
+    Admin(const string& name) : User(name, "Admin") {}
+    bool showMenu() override {
+        bool isRunning = true;
+        while (isRunning) {
+            string input;
+            int choice;
+            cout << "\n[Admin Menu - " << username << "]\n";
+            cout << "1. View Logs\n2. View Table Availability\n3. Create Receptionist Account\n4. Exit\nChoice: ";
+            getline(cin, input);
+
+            if (!validateNumericInput(input, choice, 1, 4)) {
+                cout << "Invalid choice. Please enter a single number between 1 and 4 (e.g., 1, not 1a, 1.1, or 1 1).\n";
+                continue;
+            }
+
+            switch (choice) {
+                case 1:
+                    ReservationManager::getInstance().viewLogs();
+                    break;
+                case 2:
+                    ReservationManager::getInstance().viewTableAvailability();
+                    break;
+                case 3: {
+                    string recUsername, recPassword;
+                    while (true) {
+                        cout << "Enter new receptionist username: ";
+                        getline(cin, recUsername);
+                        if (receptionistAccounts.count(recUsername)) {
+                            cout << "Username already exists. Please choose a different username.\n";
+                            continue;
+                        }
+                        break;
+                    }
+                    cout << "Enter password: ";
+                    getline(cin, recPassword);
+                    receptionistAccounts[recUsername] = recPassword;
+                    cout << "Receptionist account created.\n";
+                    break;
+                }
+                case 4: {
+                    string logout;
+                    cout << "Logout? Yes or No: ";
+                    getline(cin, logout);
+                    if (logout == "Yes" || logout == "yes") {
+                        return true; // Logout
+                    }
+                    break; // Continue in menu
+                }
+            }
+        }
+        return false; // Default: continue in menu
+    }
+};
+
+// -------- Main Driver --------
+int main() {
+    const string adminUsername = "admin";
+    const string adminPassword = "admin123";
+
+    bool isRunning = true;
+    while (isRunning) {
+        string input;
+        int roleChoice;
+        cout << "\n[Role Selection]\n1. Admin\n2. Receptionist\n3. Customer\n4. Exit\nChoose role: ";
+        getline(cin, input);
+
+        if (!validateNumericInput(input, roleChoice, 1, 4)) {
+            cout << "Invalid choice. Please enter a single number between 1 and 4 (e.g., 1, not 1a, 1.1, or 1 1).\n";
+            continue;
+        }
+
+        string username, password;
+        unique_ptr<User> user;
+
+        switch (roleChoice) {
+            case 1: {
+                bool credentialsValid = false;
+                while (!credentialsValid) {
+                    cout << "Enter Admin username: ";
+                    getline(cin, username);
+                    cout << "Enter Admin password: ";
+                    getline(cin, password);
+                    if (username == adminUsername && password == adminPassword) {
+                        user = unique_ptr<Admin>(new Admin(username));
+                        credentialsValid = true;
+                    } else {
+                        cout << "Invalid admin credentials. Please try again.\n";
+                    }
+                }
+                break;
+            }
+
+            case 2: {
+                bool credentialsValid = false;
+                while (!credentialsValid) {
+                    cout << "Enter Receptionist username: ";
+                    getline(cin, username);
+                    cout << "Enter password: ";
+                    getline(cin, password);
+                    if (receptionistAccounts.count(username) && receptionistAccounts[username] == password) {
+                        user = unique_ptr<Receptionist>(new Receptionist(username));
+                        credentialsValid = true;
+                    } else {
+                        cout << "Invalid receptionist credentials. Please try again.\n";
+                    }
+                }
+                break;
+            }
+
+            case 3: {
+                int custOption;
+                string custInput;
+                while (true) {
+                    cout << "\n1. Create Customer Account\n2. Login to Customer Account\nChoice: ";
+                    getline(cin, custInput);
+                    if (validateNumericInput(custInput, custOption, 1, 2)) {
+                        break;
+                    }
+                    cout << "Invalid choice. Please enter a single number between 1 and 2 (e.g., 1, not 1a, 1.1, or 1 1).\n";
+                }
+
+                if (custOption == 1) {
+                    bool usernameValid = false;
+                    while (!usernameValid) {
+                        cout << "Enter username: ";
+                        getline(cin, username);
+                        if (customerAccounts.count(username)) {
+                            cout << "Account already exists. Please choose a different username.\n";
+                            continue;
+                        }
+                        usernameValid = true;
+                    }
+                    cout << "Enter password: ";
+                    getline(cin, password);
+                    customerAccounts[username] = password;
+                    cout << "Customer account created.\n";
+                    user = unique_ptr<Customer>(new Customer(username));
+                } else if (custOption == 2) {
+                    bool credentialsValid = false;
+                    while (!credentialsValid) {
+                        cout << "Enter username: ";
+                        getline(cin, username);
+                        cout << "Enter password: ";
+                        getline(cin, password);
+                        if (customerAccounts.count(username) && customerAccounts[username] == password) {
+                            user = unique_ptr<Customer>(new Customer(username));
+                            credentialsValid = true;
+                        } else {
+                            cout << "Invalid credentials. Please try again.\n";
+                        }
+                    }
+                }
+                break;
+            }
+
+            case 4:
+                isRunning = false;
+                continue;
+        }
+
+        if (user) {
+            bool logout = user->showMenu();
+            if (logout) {
+                user.reset(); // Clear the current user
+                continue; // Loop back to role selection
+            }
+        }
+    }
+
+    return 0;
+}
