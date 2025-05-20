@@ -8,7 +8,6 @@
 #include <regex>
 #include <fstream>
 #include <climits>
-
 using namespace std;
 
 const string CURRENT_DATE = "2025-05-19";
@@ -123,16 +122,15 @@ private:
         return oss.str();
     }
 
-void writeLogToFile(const string& logEntry) {
-    ofstream logFile("C:\\Users\\Mikaela\\Downloads\\logs.txt", ios::app); // Use your desired path
-    if (logFile.is_open()) {
-        logFile << logEntry << "\n";
-        logFile.close();
-    } else {
-        cout << "Error: Unable to open log file at C:\\Users\\YourUsername\\Documents\\logs.txt" << endl;
-        throw ReservationException("Unable to open log file.");
+    void writeLogToFile(const string& logEntry) {
+        ofstream logFile("logs.txt", ios::app); // Append mode
+        if (logFile.is_open()) {
+            logFile << logEntry << "\n";
+            logFile.close();
+        } else {
+            throw ReservationException("Unable to open log file.");
+        }
     }
-}
 
 public:
     bool reservationIdExists(const string& id, const string& excludeId = "") {
@@ -600,9 +598,9 @@ public:
 
                     // Confirmation prompt
                     string confirm;
-                    cout << "Confirm update? Yes or No: ";
+                    cout << "Confirm update? (Y/N or Yes/No): ";
                     getline(cin, confirm);
-                    if (confirm != "Yes" && confirm != "yes") {
+                    if (confirm != "Yes" && confirm != "yes" && confirm != "Y" && confirm != "y") {
                         cout << "Update cancelled.\n";
                         break;
                     }
@@ -641,9 +639,9 @@ public:
 
                             // Confirmation prompt
                             string confirm;
-                            cout << "Confirm cancellation? Yes or No: ";
+                            cout << "Confirm cancellation? (Y/N or Yes/No): ";
                             getline(cin, confirm);
-                            if (confirm != "Yes" && confirm != "yes") {
+                            if (confirm != "Yes" && confirm != "yes" && confirm != "Y" && confirm != "y") {
                                 cout << "Cancellation aborted.\n";
                                 processComplete = true;
                                 break;
@@ -662,9 +660,9 @@ public:
                 }
                 case 6: {
                     string logout;
-                    cout << "Logout? Yes or No: ";
+                    cout << "Logout? (Y/N or Yes/No): ";
                     getline(cin, logout);
-                    if (logout == "Yes" || logout == "yes") {
+                    if (logout == "Yes" || logout == "yes" || logout == "Y" || logout == "y") {
                         return true; // Logout
                     }
                     break; // Continue in menu
@@ -728,9 +726,9 @@ public:
                     break;
                 case 3: {
                     string logout;
-                    cout << "Logout? Yes or No: ";
+                    cout << "Logout? (Y/N or Yes/No): ";
                     getline(cin, logout);
-                    if (logout == "Yes" || logout == "yes") {
+                    if (logout == "Yes" || logout == "yes" || logout == "Y" || logout == "y") {
                         return true; // Logout
                     }
                     break; // Continue in menu
@@ -929,9 +927,9 @@ public:
 
                     // Confirmation prompt
                     string confirm;
-                    cout << "Confirm update? Yes or No: ";
+                    cout << "Confirm update? (Y/N or Yes/No): ";
                     getline(cin, confirm);
-                    if (confirm != "Yes" && confirm != "yes") {
+                    if (confirm != "Yes" && confirm != "yes" && confirm != "Y" && confirm != "y") {
                         cout << "Update cancelled.\n";
                         break;
                     }
@@ -1002,9 +1000,9 @@ public:
 
                             // Confirmation prompt
                             string confirm;
-                            cout << "Confirm cancellation? Yes or No: ";
+                            cout << "Confirm cancellation? (Y/N or Yes/No): ";
                             getline(cin, confirm);
-                            if (confirm != "Yes" && confirm != "yes") {
+                            if (confirm != "Yes" && confirm != "yes" && confirm != "Y" && confirm != "y") {
                                 cout << "Cancellation aborted.\n";
                                 processComplete = true;
                                 break;
@@ -1042,9 +1040,9 @@ public:
                 }
                 case 7: {
                     string logout;
-                    cout << "Logout? Yes or No: ";
+                    cout << "Logout? (Y/N or Yes/No): ";
                     getline(cin, logout);
-                    if (logout == "Yes" || logout == "yes") {
+                    if (logout == "Yes" || logout == "yes" || logout == "Y" || logout == "y") {
                         return true; // Logout
                     }
                     break; // Continue in menu
@@ -1057,8 +1055,6 @@ public:
 
 // -------- Main Driver --------
 int main() {
-
-
     const string adminUsername = "admin";
     const string adminPassword = "admin123";
 
