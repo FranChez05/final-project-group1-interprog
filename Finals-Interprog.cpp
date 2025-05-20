@@ -717,7 +717,7 @@ public:
                         break;
                     }
 
-                    string reservationId, newId, newName, newPhone, newDate, newTime, newPartySizeInput, newTableChoiceInput;
+                    string reservationId, newId = "0", newName, newPhone, newDate, newTime, newPartySizeInput, newTableChoiceInput;
                     int newPartySize = 0, newTableChoice = 0, newTableIndex = -1;
 
                     while (true) {
@@ -738,26 +738,6 @@ public:
                             }
                             if (!hasReservation) {
                                 throw ReservationException("No reservation to update.");
-                            }
-                            break;
-                        } catch (const ReservationException& ex) {
-                            cout << "Error: " << ex.what() << endl;
-                            ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", 
-                                                                     ex.what(), reservationId, username);
-                        }
-                    }
-
-                    while (true) {
-                        cout << "Enter new ID (e.g., ID 2A, or 0 to keep current): ";
-                        getline(cin, newId);
-                        newId = toUpperCase(newId);
-                        if (newId == "0") break;
-                        try {
-                            if (!validateReservationId(newId)) {
-                                throw ReservationException("Invalid new reservation ID format. Use 'ID <number>A', e.g., ID 1A.");
-                            }
-                            if (ReservationManager::getInstance().reservationIdExists(newId, reservationId)) {
-                                throw ReservationException("New reservation ID already exists. Choose a different ID.");
                             }
                             break;
                         } catch (const ReservationException& ex) {
