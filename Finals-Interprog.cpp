@@ -684,9 +684,29 @@ public:
             }
 
             switch (choice) {
-                case 1:
-                    ReservationManager::getInstance().viewLogs();
+                case 1: {
+                    cout << "\n--- Current Reservations ---\n";
+                    vector<Reservation> allReservations = ReservationManager::getInstance().getAllReservations();
+                    
+                    if (allReservations.empty()) {
+                        cout << "No reservations found.\n";
+                    } else {
+                        // Display header
+                        cout << "ID\t\tCustomer\tParty\tDate\t\tTime\tContact\t\tTable\n";
+                        
+                        // Display each reservation
+                        for (const auto& res : allReservations) {
+                                cout << res.id << "\t" 
+                                     << res.customerName << "\t"
+                                     << res.partySize << "\t"
+                                     << res.date << "\t"
+                                     << res.time << "\t"
+                                     << res.phoneNumber << "\t"
+                                     << (res.tableNumber + 1) << endl;
+                            }
+                    }
                     break;
+                }
                 case 2:
                     ReservationManager::getInstance().viewTableAvailability();
                     break;
@@ -703,6 +723,7 @@ public:
         }
         return false; // Default: continue in menu
     }
+};
 };
 
 class Admin : public User {
