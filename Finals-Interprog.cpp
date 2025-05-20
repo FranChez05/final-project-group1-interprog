@@ -669,6 +669,7 @@ public:
 class Receptionist : public User {
 public:
     Receptionist(const string& name) : User(name, "Receptionist") {}
+    
     bool showMenu() override {
         bool isRunning = true;
         while (isRunning) {
@@ -696,14 +697,14 @@ public:
                         
                         // Display each reservation
                         for (const auto& res : allReservations) {
-                                cout << res.id << "\t" 
-                                     << res.customerName << "\t"
-                                     << res.partySize << "\t"
-                                     << res.date << "\t"
-                                     << res.time << "\t"
-                                     << res.phoneNumber << "\t"
-                                     << (res.tableNumber + 1) << endl;
-                            }
+                            cout << res.id << "\t" 
+                                 << res.customerName << "\t"
+                                 << res.partySize << "\t"
+                                 << res.date << "\t"
+                                 << res.time << "\t"
+                                 << res.phoneNumber << "\t"
+                                 << (res.tableNumber + 1) << endl;
+                        }
                     }
                     break;
                 }
@@ -712,9 +713,11 @@ public:
                     break;
                 case 3: {
                     string logout;
-                    cout << "Logout? Yes or No: ";
+                    cout << "Logout? (Y/N): ";
                     getline(cin, logout);
-                    if (logout == "Yes" || logout == "yes") {
+                    // Convert to lowercase for case-insensitive comparison
+                    transform(logout.begin(), logout.end(), logout.begin(), ::tolower);
+                    if (logout == "yes" || logout == "y") {
                         return true; // Logout
                     }
                     break; // Continue in menu
@@ -724,298 +727,4 @@ public:
         return false; // Default: continue in menu
     }
 };
-};
 
-class Admin : public User {
-public:
-    Admin(const string& name) : User(name, "Admin") {}
-    bool showMenu() override {
-        bool isRunning = true;
-        while (isRunning) {
-            string input;
-            int choice;
-            cout << "\n[Admin Menu - " << username << "]\n";
-            cout << "1. View Logs\n";
-            cout << "2. View Table Availability\n";
-            cout << "3. Update Reservation\n";
-            cout << "4. Cancel Reservation\n";
-            cout << "5. Create Receptionist Account\n";
-            cout << "6. Exit\nChoice: ";
-            getline(cin, input);
-
-            if (!validateNumericInput(input, choice, 1, 6)) {
-                cout << "Invalid choice. Please enter a single number between 1 and 6 (e.g., 1, not 1a, 1.1, or 1 1).\n";
-                continue;
-            }
-
-            switch (choice) {
-                case 1:
-                    ReservationManager::getInstance().viewLogs();
-                    break;
-                case 2:
-                    ReservationManager::getInstance().viewTableAvailability();
-                    break;
-                case 3: {
-                    // Implementation for updating a reservation
-                    string customerName, reservationId, newId, newName, newPhone, newDate, newTime, newPartySizeInput, newTableChoiceInput;
-                    int newPartySize, newTableChoice;
-
-                    cout << "Enter customer name: ";
-                    getline(cin, customerName);
-                    
-                    if (!ReservationManager::getInstance().hasReservations(customerName)) {
-                        cout << "No reservations found for this customer.\n";
-                        break;
-                    }
-
-                    while (true) {
-                        cout << "Enter reservation ID to update (e.g., ID 1A): ";
-                        getline(cin, reservationId);
-                        try {
-                            if (!validateReservationId(reservationId)) {
-                                throw ReservationException("Invalid reservation ID format. Use 'ID <number>A', e.g., ID 1A.");
-                            }
-                            if (!ReservationManager::getInstance().hasReservations(customerName)) {
-                                throw ReservationException("No reservation to update.");
-                            }
-                            break;
-                        } catch (const ReservationException& ex) {
-                            cout << "Error: " << ex.what() << endl;
-                        }
-                    }
-
-                    // Show current reservation
-                    ReservationManager::getInstance().viewCustomerReservations(customerName);
-
-                    // Get update information
-                    cout << "Enter new ID (or 0 to keep current): ";
-                    getline(cin, newId);
-                    cout << "Enter new name (or 0 to keep current): ";
-                    getline(cin, newName);
-                    
-                    while (true) {
-                        cout << "Enter new phone number (e.g., 123-456-7890, or 0 to keep current): ";
-                        getline(cin, newPhone);
-                        if (newPhone == "0" || validatePhoneNumber(newPhone)) break;
-                        cout << "Error: Invalid phone number format. Use XXX-XXX-XXXX.\n";
-                    }
-
-                    while (true) {
-                        cout << "Enter new party size (or 0 to keep current): ";
-                        getline(cin, newPartySizeInput);
-                        if (newPartySizeInput == "0") {
-                            newPartySize = 0;
-                            break;
-                        }
-                        if (validateNumericInput(newPartySizeInput, newPartySize, 1, INT_MAX)) break;
-                        cout << "Error: Invalid party size.\n";
-                    }
-
-                    while (true) {
-                        cout << "Enter new date (YYYY-MM-DD, or 0 to keep current): ";
-                        getline(cin, newDate);
-                        if (newDate == "0" || validateDate(newDate)) break;
-                        cout << "Error: Invalid date format.\n";
-                    }
-
-                    while (true) {
-                        cout << "Enter new time (HH:MM, or 0 to keep current): ";
-                        getline(cin, newTime);
-                        if (newTime == "0" || validateTime(newTime, newDate != "0" ? newDate : CURRENT_DATE)) break;
-                        cout << "Error: Invalid time format.\n";
-                    }
-
-                    while (true) {
-                        cout << "Table options: 0 to keep current, or enter table number (1-10):\n";
-                        ReservationManager::getInstance().viewTableAvailability();
-                        cout << "Choice: ";
-                        getline(cin, newTableChoiceInput);
-                        if (validateNumericInput(newTableChoiceInput, newTableChoice, 0, 10)) break;
-                        cout << "Error: Invalid table choice.\n";
-                    }
-
-                    try {
-                        int newTableIndex = (newTableChoice != 0) ? newTableChoice - 1 : -1;
-                        ReservationManager::getInstance().updateReservation(reservationId, customerName, 
-                                                                          newId, newName, newPhone, newPartySize, 
-                                                                          newDate, newTime, newTableIndex);
-                        cout << "Reservation updated successfully.\n";
-                    } catch (const ReservationException& ex) {
-                        cout << "Error: " << ex.what() << endl;
-                    }
-                    break;
-                }
-                case 4: {
-                    // Implementation for canceling a reservation
-                    string customerName, reservationId;
-                    
-                    cout << "Enter customer name: ";
-                    getline(cin, customerName);
-                    
-                    if (!ReservationManager::getInstance().hasReservations(customerName)) {
-                        cout << "No reservations found for this customer.\n";
-                        break;
-                    }
-
-                    cout << "Enter reservation ID to cancel (e.g., ID 1A): ";
-                    getline(cin, reservationId);
-
-                    try {
-                        ReservationManager::getInstance().cancelReservation(reservationId, customerName);
-                        cout << "Reservation cancelled successfully.\n";
-                    } catch (const ReservationException& ex) {
-                        cout << "Error: " << ex.what() << endl;
-                    }
-                    break;
-                }
-                case 5: {
-                    string recUsername, recPassword;
-                    while (true) {
-                        cout << "Enter new receptionist username: ";
-                        getline(cin, recUsername);
-                        if (receptionistAccounts.count(recUsername)) {
-                            cout << "Username already exists. Please choose a different username.\n";
-                            continue;
-                        }
-                        break;
-                    }
-                    cout << "Enter password: ";
-                    getline(cin, recPassword);
-                    receptionistAccounts[recUsername] = recPassword;
-                    cout << "Receptionist account created.\n";
-                    break;
-                }
-                case 6: {
-    string logout;
-    cout << "Logout? (Y/N or Yes/No): ";
-    getline(cin, logout);
-    // Convert to lowercase for case-insensitive comparison
-    transform(logout.begin(), logout.end(), logout.begin(), ::tolower);
-    if (logout == "yes" || logout == "y") {
-        return true; // Logout
-    }
-    break;
-}
-            }
-        }
-        return false;
-    }
-};
-
-// -------- Main Driver --------
-int main() {
-    const string adminUsername = "admin";
-    const string adminPassword = "admin123";
-
-    bool isRunning = true;
-    while (isRunning) {
-        string input;
-        int roleChoice;
-        cout << "\n[Role Selection]\n1. Admin\n2. Receptionist\n3. Customer\n4. Exit\nChoose role: ";
-        getline(cin, input);
-
-        if (!validateNumericInput(input, roleChoice, 1, 4)) {
-            cout << "Invalid choice. Please enter a single number between 1 and 4 (e.g., 1, not 1a, 1.1, or 1 1).\n";
-            continue;
-        }
-
-        string username, password;
-        unique_ptr<User> user;
-
-        switch (roleChoice) {
-            case 1: {
-                bool credentialsValid = false;
-                while (!credentialsValid) {
-                    cout << "Enter Admin username: ";
-                    getline(cin, username);
-                    cout << "Enter Admin password: ";
-                    getline(cin, password);
-                    if (username == adminUsername && password == adminPassword) {
-                        user = unique_ptr<Admin>(new Admin(username));
-                        credentialsValid = true;
-                    } else {
-                        cout << "Invalid admin credentials. Please try again.\n";
-                    }
-                }
-                break;
-            }
-
-            case 2: {
-                bool credentialsValid = false;
-                while (!credentialsValid) {
-                    cout << "Enter Receptionist username: ";
-                    getline(cin, username);
-                    cout << "Enter password: ";
-                    getline(cin, password);
-                    if (receptionistAccounts.count(username) && receptionistAccounts[username] == password) {
-                        user = unique_ptr<Receptionist>(new Receptionist(username));
-                        credentialsValid = true;
-                    } else {
-                        cout << "Invalid receptionist credentials. Please try again.\n";
-                    }
-                }
-                break;
-            }
-
-            case 3: {
-                int custOption;
-                string custInput;
-                while (true) {
-                    cout << "\n1. Create Customer Account\n2. Login to Customer Account\nChoice: ";
-                    getline(cin, custInput);
-                    if (validateNumericInput(custInput, custOption, 1, 2)) {
-                        break;
-                    }
-                    cout << "Invalid choice. Please enter a single number between 1 and 2 (e.g., 1, not 1a, 1.1, or 1 1).\n";
-                }
-
-                if (custOption == 1) {
-                    bool usernameValid = false;
-                    while (!usernameValid) {
-                        cout << "Enter username: ";
-                        getline(cin, username);
-                        if (customerAccounts.count(username)) {
-                            cout << "Account already exists. Please choose a different username.\n";
-                            continue;
-                        }
-                        usernameValid = true;
-                    }
-                    cout << "Enter password: ";
-                    getline(cin, password);
-                    customerAccounts[username] = password;
-                    cout << "Customer account created.\n";
-                    user = unique_ptr<Customer>(new Customer(username));
-                } else if (custOption == 2) {
-                    bool credentialsValid = false;
-                    while (!credentialsValid) {
-                        cout << "Enter username: ";
-                        getline(cin, username);
-                        cout << "Enter password: ";
-                        getline(cin, password);
-                        if (customerAccounts.count(username) && customerAccounts[username] == password) {
-                            user = unique_ptr<Customer>(new Customer(username));
-                            credentialsValid = true;
-                        } else {
-                            cout << "Invalid credentials. Please try again.\n";
-                        }
-                    }
-                }
-                break;
-            }
-
-            case 4:
-                isRunning = false;
-                continue;
-        }
-
-        if (user) {
-            bool logout = user->showMenu();
-            if (logout) {
-                user.reset(); // Clear the current user
-                continue; // Loop back to role selection
-            }
-        }
-    }
-
-    return 0;
-}
