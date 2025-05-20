@@ -340,7 +340,7 @@ public:
             throw ReservationException("Invalid table number. Must be between 1 and 10.");
         }
         if (!tables[tableNumber]) {
-            throw ReservationException("Selected table is already booked.");
+            throw ReservationException("Selected Saviors on the selected table is already booked.");
         }
         tables[tableNumber] = false;
 
@@ -1291,10 +1291,42 @@ public:
     }
 };
 
+// -------- Helper Functions for Customer Accounts --------
+void saveCustomerAccounts(const map<string, string>& accounts) {
+    ofstream accountsFile("customer_accounts.txt");
+    if (!accountsFile.is_open()) {
+        cerr << "Error: Unable to open customer_accounts.txt for writing." << endl;
+        return;
+    }
+    for (const auto& account : accounts) {
+        accountsFile << account.first << "|" << account.second << "\n";
+    }
+    accountsFile.close();
+}
+
+void loadCustomerAccounts(map<string, string>& accounts) {
+    ifstream accountsFile("customer_accounts.txt");
+    if (accountsFile.is_open()) {
+        string line;
+        while (getline(accountsFile, line)) {
+            stringstream ss(line);
+            string username, password;
+            getline(ss, username, '|');
+            getline(ss, password);
+            accounts[username] = password;
+        }
+        accountsFile.close();
+    }
+    // If file doesn't exist, accounts remains empty (handled implicitly)
+}
+
 // -------- Main Driver --------
 int main() {
     const string adminUsername = "admin";
     const string adminPassword = "admin123";
+
+    // Load customer accounts at startup
+    loadCustomerAccounts(customerAccounts);
 
     bool isRunning = true;
     while (isRunning) {
@@ -1381,6 +1413,7 @@ int main() {
                     cout << "Enter password: ";
                     getline(cin, password);
                     customerAccounts[username] = password;
+                    saveCustomerAccounts(customerAccounts); // Save accounts to file
                     cout << "Customer account created.\n";
                     user = unique_ptr<Customer>(new Customer(username));
                 } else if (custOption == 2) {
