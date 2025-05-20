@@ -128,15 +128,15 @@ private:
 
     string getCurrentTimestamp() {
         ostringstream oss;
-        oss << "[" << CURRENT_DATE << " " << (CURRENT_HOUR < 10 ? "0" : "") << CURRENT_HOUR << ":"
-            << (CURRENT_MINUTE < 10 ? "0" : "") << CURRENT_MINUTE << ":00]";
+        oss << CURRENT_DATE << " " << (CURRENT_HOUR < 10 ? "0" : "") << CURRENT_HOUR << ":"
+            << (CURRENT_MINUTE < 10 ? "0" : "") << CURRENT_MINUTE << ":00";
         return oss.str();
     }
 
     void writeLogToFile(const string& logEntry) {
         ofstream logFile("logs.txt", ios::app);
         if (logFile.is_open()) {
-            logFile << logEntry << "\n";
+            logFile << logEntry << "\n\n"; // Add extra newline for separation
             logFile.close();
         } else {
             throw ReservationException("Unable to open log file.");
@@ -231,76 +231,46 @@ public:
         return *instance;
     }
 
-    void logLogin(const string& role, const string& username) {
+    void logLogin(const string& role, const string& username, const string& password) {
         string timestamp = getCurrentTimestamp();
-        string logEntry = timestamp + " [" + role + ": " + username + "] Logged in";
-        writeLogToFile(logEntry);
+        ostringstream logEntry;
+        logEntry << "Account Log: (" << timestamp << ", N/A) | User: " << username 
+                 << " | Password: " << password;
+        writeLogToFile(logEntry.str());
     }
 
     void logReservationAction(const string& role, const string& username, const string& action, const string& details,
                               const string& id = "", const string& customerName = "", const string& phoneNumber = "",
                               int partySize = 0, const string& date = "", const string& time = "", int tableNumber = -1) {
-        string timestamp = getCurrentTimestamp();
-        string logEntry = timestamp + " [" + role + ": " + username + "] " + action + " " + details;
-        
-        // Append reservation details if provided (for reservation-related actions)
-        if (!id.empty()) {
-            logEntry += " [Reservation: ID: " + id;
-            if (!customerName.empty()) logEntry += ", Name: " + customerName;
-            if (!phoneNumber.empty()) logEntry += ", Contact: " + phoneNumber;
-            if (partySize > 0) logEntry += ", Party Size: " + to_string(partySize);
-            if (!date.empty()) logEntry += ", Date: " + date;
-            if (!time.empty()) logEntry += ", Time: " + time;
-            if (tableNumber >= 0) logEntry += ", Table: " + to_string(tableNumber + 1);
-            logEntry += "]";
-        }
-        
-        writeLogToFile(logEntry);
+        ostringstream logEntry;
+        logEntry << "Reservation Log\n"
+                 << "Action: " << action << " by " << role << ": " << username << "\n"
+                 << "Details: " << details << "\n"
+                 << "ID: " << (id.empty() ? "N/A" : id) << " | "
+                 << "Name: " << (customerName.empty() ? "N/A" : customerName) << " | "
+                 << "Contact: " << (phoneNumber.empty() ? "N/A" : phoneNumber) << " | "
+                 << "Party-Size: " << (partySize > 0 ? to_string(partySize) : "N/A") << " | "
+                 << "Date: " << (date.empty() ? "N/A" : date) << " | "
+                 << "Time: " << (time.empty() ? "N/A" : time) << " | "
+                 << "Table: " << (tableNumber >= 0 ? to_string(tableNumber + 1) : "N/A");
+        writeLogToFile(logEntry.str());
     }
 
     void logError(const string& role, const string& username, const string& action, const string& errorMsg,
                   const string& id = "", const string& customerName = "", const string& phoneNumber = "",
                   int partySize = 0, const string& date = "", const string& time = "", int tableNumber = -1) {
-        string timestamp = getCurrentTimestamp();
-        string logEntry = timestamp + " [" + role + ": " + username + "] " + action + " Error: " + errorMsg;
-        
-        // Append available reservation details if provided
-        bool hasDetails = !id.empty() || !customerName.empty() || !phoneNumber.empty() || 
-                         partySize > 0 || !date.empty() || !time.empty() || tableNumber >= 0;
-        if (hasDetails) {
-            logEntry += " [Details: ";
-            bool first = true;
-            if (!id.empty()) {
-                logEntry += "ID: " + id;
-                first = false;
-            }
-            if (!customerName.empty()) {
-                logEntry += (first ? "" : ", ") + string("Name: ") + customerName;
-                first = false;
-            }
-            if (!phoneNumber.empty()) {
-                logEntry += (first ? "" : ", ") + string("Contact: ") + phoneNumber;
-                first = false;
-            }
-            if (partySize > 0) {
-                logEntry += (first ? "" : ", ") + string("Party Size: ") + to_string(partySize);
-                first = false;
-            }
-            if (!date.empty()) {
-                logEntry += (first ? "" : ", ") + string("Date: ") + date;
-                first = false;
-            }
-            if (!time.empty()) {
-                logEntry += (first ? "" : ", ") + string("Time: ") + time;
-                first = false;
-            }
-            if (tableNumber >= 0) {
-                logEntry += (first ? "" : ", ") + string("Table: ") + to_string(tableNumber + 1);
-            }
-            logEntry += "]";
-        }
-        
-        writeLogToFile(logEntry);
+        ostringstream logEntry;
+        logEntry << "Reservation Error Log\n"
+                 << "Action: " << action << " by " << role << ": " << username << "\n"
+                 << "Error: " << errorMsg << "\n"
+                 << "ID: " << (id.empty() ? "N/A" : id) << " | "
+                 << "Name: " << (customerName.empty() ? "N/A" : customerName) << " | "
+                 << "Contact: " << (phoneNumber.empty() ? "N/A" : phoneNumber) << " | "
+                 << "Party-Size: " << (partySize > 0 ? to_string(partySize) : "N/A") << " | "
+                 << "Date: " << (date.empty() ? "N/A" : date) << " | "
+                 << "Time: " << (time.empty() ? "N/A" : time) << " | "
+                 << "Table: " << (tableNumber >= 0 ? to_string(tableNumber + 1) : "N/A");
+        writeLogToFile(logEntry.str());
     }
 
     void viewTableAvailability() {
@@ -340,7 +310,7 @@ public:
             throw ReservationException("Invalid table number. Must be between 1 and 10.");
         }
         if (!tables[tableNumber]) {
-            throw ReservationException("Selected Saviors on the selected table is already booked.");
+            throw ReservationException("Selected table is already booked.");
         }
         tables[tableNumber] = false;
 
@@ -540,9 +510,9 @@ protected:
     string username;
     string role;
 public:
-    User(const string& name, const string& r) : username(name), role(r) {
+    User(const string& name, const string& r, const string& password) : username(name), role(r) {
         if (role != "Receptionist") { // Skip logging for Receptionist
-            ReservationManager::getInstance().logLogin(role, name);
+            ReservationManager::getInstance().logLogin(role, name, password);
         }
     }
     virtual bool showMenu() = 0; // Return true to logout, false to continue
@@ -553,10 +523,38 @@ public:
 map<string, string> receptionistAccounts;
 map<string, string> customerAccounts;
 
+// -------- Helper Functions for Customer Accounts --------
+void saveCustomerAccounts(const map<string, string>& accounts) {
+    ofstream accountsFile("customer_accounts.txt");
+    if (!accountsFile.is_open()) {
+        cerr << "Error: Unable to open customer_accounts.txt for writing." << endl;
+        return;
+    }
+    for (const auto& account : accounts) {
+        accountsFile << account.first << "|" << account.second << "\n";
+    }
+    accountsFile.close();
+}
+
+void loadCustomerAccounts(map<string, string>& accounts) {
+    ifstream accountsFile("customer_accounts.txt");
+    if (accountsFile.is_open()) {
+        string line;
+        while (getline(accountsFile, line)) {
+            stringstream ss(line);
+            string username, password;
+            getline(ss, username, '|');
+            getline(ss, password);
+            accounts[username] = password;
+        }
+        accountsFile.close();
+    }
+}
+
 // -------- Inheritance for Roles --------
 class Customer : public User {
 public:
-    Customer(const string& name) : User(name, "Customer") {}
+    Customer(const string& name, const string& password) : User(name, "Customer", password) {}
     bool showMenu() override {
         bool isRunning = true;
         while (isRunning) {
@@ -902,7 +900,7 @@ public:
     }
 
 public:
-    Receptionist(const string& name) : User(name, "Receptionist") {}
+    Receptionist(const string& name, const string& password) : User(name, "Receptionist", password) {}
     bool showMenu() override {
         bool isRunning = true;
         while (isRunning) {
@@ -961,7 +959,7 @@ public:
 
 class Admin : public User {
 public:
-    Admin(const string& name) : User(name, "Admin") {}
+    Admin(const string& name, const string& password) : User(name, "Admin", password) {}
     bool showMenu() override {
         bool isRunning = true;
         while (isRunning) {
@@ -1291,35 +1289,6 @@ public:
     }
 };
 
-// -------- Helper Functions for Customer Accounts --------
-void saveCustomerAccounts(const map<string, string>& accounts) {
-    ofstream accountsFile("customer_accounts.txt");
-    if (!accountsFile.is_open()) {
-        cerr << "Error: Unable to open customer_accounts.txt for writing." << endl;
-        return;
-    }
-    for (const auto& account : accounts) {
-        accountsFile << account.first << "|" << account.second << "\n";
-    }
-    accountsFile.close();
-}
-
-void loadCustomerAccounts(map<string, string>& accounts) {
-    ifstream accountsFile("customer_accounts.txt");
-    if (accountsFile.is_open()) {
-        string line;
-        while (getline(accountsFile, line)) {
-            stringstream ss(line);
-            string username, password;
-            getline(ss, username, '|');
-            getline(ss, password);
-            accounts[username] = password;
-        }
-        accountsFile.close();
-    }
-    // If file doesn't exist, accounts remains empty (handled implicitly)
-}
-
 // -------- Main Driver --------
 int main() {
     const string adminUsername = "admin";
@@ -1352,7 +1321,7 @@ int main() {
                     cout << "Enter Admin password: ";
                     getline(cin, password);
                     if (username == adminUsername && password == adminPassword) {
-                        user = unique_ptr<Admin>(new Admin(username));
+                        user = unique_ptr<Admin>(new Admin(username, password));
                         credentialsValid = true;
                     } else {
                         cout << "Invalid admin credentials. Please try again.\n";
@@ -1366,7 +1335,7 @@ int main() {
                 while (!credentialsValid) {
                     cout << "Enter Receptionist username: ";
                     getline(cin, username);
-                    Receptionist temp(username); // Temporary object to use isValidCredential
+                    Receptionist temp(username, ""); // Temporary object to use isValidCredential
                     if (!temp.isValidCredential(username)) {
                         cout << "Invalid username. Use letters and numbers only (no spaces or special characters).\n";
                         continue;
@@ -1378,7 +1347,7 @@ int main() {
                         continue;
                     }
                     if (receptionistAccounts.count(username) && receptionistAccounts[username] == password) {
-                        user = unique_ptr<Receptionist>(new Receptionist(username));
+                        user = unique_ptr<Receptionist>(new Receptionist(username, password));
                         credentialsValid = true;
                     } else {
                         cout << "Invalid receptionist credentials. Please try again.\n";
@@ -1415,7 +1384,7 @@ int main() {
                     customerAccounts[username] = password;
                     saveCustomerAccounts(customerAccounts); // Save accounts to file
                     cout << "Customer account created.\n";
-                    user = unique_ptr<Customer>(new Customer(username));
+                    user = unique_ptr<Customer>(new Customer(username, password));
                 } else if (custOption == 2) {
                     bool credentialsValid = false;
                     while (!credentialsValid) {
@@ -1424,7 +1393,7 @@ int main() {
                         cout << "Enter password: ";
                         getline(cin, password);
                         if (customerAccounts.count(username) && customerAccounts[username] == password) {
-                            user = unique_ptr<Customer>(new Customer(username));
+                            user = unique_ptr<Customer>(new Customer(username, password));
                             credentialsValid = true;
                         } else {
                             cout << "Invalid credentials. Please try again.\n";
