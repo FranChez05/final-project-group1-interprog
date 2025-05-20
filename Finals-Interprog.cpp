@@ -8,13 +8,12 @@
 #include <regex>
 #include <fstream>
 #include <climits>
-#include <algorithm> // For std::transform
-#include <cctype>    // For std::tolower
+
 using namespace std;
 
-const string CURRENT_DATE = "2025-05-20"; // Updated to current date
-const int CURRENT_HOUR = 21;              // 9 PM PST
-const int CURRENT_MINUTE = 20;
+const string CURRENT_DATE = "2025-05-19";
+const int CURRENT_HOUR = 22;
+const int CURRENT_MINUTE = 19;
 
 // -------- Exception Handling --------
 class ReservationException : public exception {
@@ -124,15 +123,16 @@ private:
         return oss.str();
     }
 
-    void writeLogToFile(const string& logEntry) {
-        ofstream logFile("logs.txt", ios::app); // Append mode
-        if (logFile.is_open()) {
-            logFile << logEntry << "\n";
-            logFile.close();
-        } else {
-            throw ReservationException("Unable to open log file.");
-        }
+void writeLogToFile(const string& logEntry) {
+    ofstream logFile("C:\\Users\\Mikaela\\Downloads\\logs.txt", ios::app); // Use your desired path
+    if (logFile.is_open()) {
+        logFile << logEntry << "\n";
+        logFile.close();
+    } else {
+        cout << "Error: Unable to open log file at C:\\Users\\YourUsername\\Documents\\logs.txt" << endl;
+        throw ReservationException("Unable to open log file.");
     }
+}
 
 public:
     bool reservationIdExists(const string& id, const string& excludeId = "") {
@@ -434,7 +434,7 @@ public:
                     }
 
                     while (true) {
-                        cout << "Enter reservation date (e.g., YYYY-MM-DD, must be on or after 2025-05-20): ";
+                        cout << "Enter reservation date (e.g., YYYY-MM-DD, must be on or after 2025-05-19): ";
                         getline(cin, date);
                         if (validateDate(date)) {
                             break;
@@ -444,7 +444,7 @@ public:
                     }
 
                     while (true) {
-                        cout << "Enter reservation time (e.g., HH:MM in 24-hour format, must be after 21:20 if today): ";
+                        cout << "Enter reservation time (e.g., HH:MM in 24-hour format, must be after 22:19 if today): ";
                         getline(cin, time);
                         if (validateTime(time, date)) {
                             break;
@@ -568,7 +568,7 @@ public:
                     }
 
                     while (true) {
-                        cout << "Enter new date (e.g., YYYY-MM-DD, must be on or after 2025-05-20, or 0 to keep current): ";
+                        cout << "Enter new date (e.g., YYYY-MM-DD, must be on or after 2025-05-19, or 0 to keep current): ";
                         getline(cin, newDate);
                         if (newDate == "0") break;
                         if (validateDate(newDate)) break;
@@ -577,7 +577,7 @@ public:
                     }
 
                     while (true) {
-                        cout << "Enter new time (e.g., HH:MM in 24-hour format, must be after 21:20 if today, or 0 to keep current): ";
+                        cout << "Enter new time (e.g., HH:MM in 24-hour format, must be after 22:19 if today, or 0 to keep current): ";
                         getline(cin, newTime);
                         if (newTime == "0") break;
                         if (validateTime(newTime, newDate != "0" ? newDate : CURRENT_DATE)) break;
@@ -598,21 +598,11 @@ public:
                         break;
                     }
 
-                    // Confirmation prompt with case-insensitive validation
+                    // Confirmation prompt
                     string confirm;
-                    while (true) {
-                        cout << "Confirm update? Yes or No: ";
-                        getline(cin, confirm);
-                        string confirmLower = confirm;
-                        transform(confirmLower.begin(), confirmLower.end(), confirmLower.begin(), ::tolower);
-                        if (confirmLower == "yes" || confirmLower == "no") {
-                            break;
-                        }
-                        cout << "Invalid choice! Choose between Yes or no\n";
-                    }
-                    string confirmLower = confirm;
-                    transform(confirmLower.begin(), confirmLower.end(), confirmLower.begin(), ::tolower);
-                    if (confirmLower != "yes") {
+                    cout << "Confirm update? Yes or No: ";
+                    getline(cin, confirm);
+                    if (confirm != "Yes" && confirm != "yes") {
                         cout << "Update cancelled.\n";
                         break;
                     }
@@ -649,21 +639,11 @@ public:
                             // Show the reservation to confirm
                             ReservationManager::getInstance().viewCustomerReservations(username);
 
-                            // Confirmation prompt with case-insensitive validation
+                            // Confirmation prompt
                             string confirm;
-                            while (true) {
-                                cout << "Confirm cancellation? Yes or No: ";
-                                getline(cin, confirm);
-                                string confirmLower = confirm;
-                                transform(confirmLower.begin(), confirmLower.end(), confirmLower.begin(), ::tolower);
-                                if (confirmLower == "yes" || confirmLower == "no") {
-                                    break;
-                                }
-                                cout << "Invalid choice! Choose between Yes or no\n";
-                            }
-                            string confirmLower = confirm;
-                            transform(confirmLower.begin(), confirmLower.end(), confirmLower.begin(), ::tolower);
-                            if (confirmLower != "yes") {
+                            cout << "Confirm cancellation? Yes or No: ";
+                            getline(cin, confirm);
+                            if (confirm != "Yes" && confirm != "yes") {
                                 cout << "Cancellation aborted.\n";
                                 processComplete = true;
                                 break;
@@ -682,19 +662,9 @@ public:
                 }
                 case 6: {
                     string logout;
-                    while (true) {
-                        cout << "Logout? Yes or No: ";
-                        getline(cin, logout);
-                        string logoutLower = logout;
-                        transform(logoutLower.begin(), logoutLower.end(), logoutLower.begin(), ::tolower);
-                        if (logoutLower == "yes" || logoutLower == "no") {
-                            break;
-                        }
-                        cout << "Invalid choice! Choose between Yes or no\n";
-                    }
-                    string logoutLower = logout;
-                    transform(logoutLower.begin(), logoutLower.end(), logoutLower.begin(), ::tolower);
-                    if (logoutLower == "yes") {
+                    cout << "Logout? Yes or No: ";
+                    getline(cin, logout);
+                    if (logout == "Yes" || logout == "yes") {
                         return true; // Logout
                     }
                     break; // Continue in menu
@@ -758,19 +728,9 @@ public:
                     break;
                 case 3: {
                     string logout;
-                    while (true) {
-                        cout << "Logout? Yes or No: ";
-                        getline(cin, logout);
-                        string logoutLower = logout;
-                        transform(logoutLower.begin(), logoutLower.end(), logoutLower.begin(), ::tolower);
-                        if (logoutLower == "yes" || logoutLower == "no") {
-                            break;
-                        }
-                        cout << "Invalid choice! Choose between Yes or no\n";
-                    }
-                    string logoutLower = logout;
-                    transform(logoutLower.begin(), logoutLower.end(), logoutLower.begin(), ::tolower);
-                    if (logoutLower == "yes") {
+                    cout << "Logout? Yes or No: ";
+                    getline(cin, logout);
+                    if (logout == "Yes" || logout == "yes") {
                         return true; // Logout
                     }
                     break; // Continue in menu
@@ -937,7 +897,7 @@ public:
                     }
 
                     while (true) {
-                        cout << "Enter new date (e.g., YYYY-MM-DD, must be on or after 2025-05-20, or 0 to keep current): ";
+                        cout << "Enter new date (e.g., YYYY-MM-DD, must be on or after 2025-05-19, or 0 to keep current): ";
                         getline(cin, newDate);
                         if (newDate == "0") break;
                         if (validateDate(newDate)) break;
@@ -946,7 +906,7 @@ public:
                     }
 
                     while (true) {
-                        cout << "Enter new time (e.g., HH:MM in 24-hour format, must be after 21:20 if today, or 0 to keep current): ";
+                        cout << "Enter new time (e.g., HH:MM in 24-hour format, must be after 22:19 if today, or 0 to keep current): ";
                         getline(cin, newTime);
                         if (newTime == "0") break;
                         if (validateTime(newTime, newDate != "0" ? newDate : CURRENT_DATE)) break;
@@ -967,21 +927,11 @@ public:
                         break;
                     }
 
-                    // Confirmation prompt with case-insensitive validation
+                    // Confirmation prompt
                     string confirm;
-                    while (true) {
-                        cout << "Confirm update? Yes or No: ";
-                        getline(cin, confirm);
-                        string confirmLower = confirm;
-                        transform(confirmLower.begin(), confirmLower.end(), confirmLower.begin(), ::tolower);
-                        if (confirmLower == "yes" || confirmLower == "no") {
-                            break;
-                        }
-                        cout << "Invalid choice! Choose between Yes or no\n";
-                    }
-                    string confirmLower = confirm;
-                    transform(confirmLower.begin(), confirmLower.end(), confirmLower.begin(), ::tolower);
-                    if (confirmLower != "yes") {
+                    cout << "Confirm update? Yes or No: ";
+                    getline(cin, confirm);
+                    if (confirm != "Yes" && confirm != "yes") {
                         cout << "Update cancelled.\n";
                         break;
                     }
@@ -1050,21 +1000,11 @@ public:
                                 }
                             }
 
-                            // Confirmation prompt with case-insensitive validation
+                            // Confirmation prompt
                             string confirm;
-                            while (true) {
-                                cout << "Confirm cancellation? Yes or No: ";
-                                getline(cin, confirm);
-                                string confirmLower = confirm;
-                                transform(confirmLower.begin(), confirmLower.end(), confirmLower.begin(), ::tolower);
-                                if (confirmLower == "yes" || confirmLower == "no") {
-                                    break;
-                                }
-                                cout << "Invalid choice! Choose between Yes or no\n";
-                            }
-                            string confirmLower = confirm;
-                            transform(confirmLower.begin(), confirmLower.end(), confirmLower.begin(), ::tolower);
-                            if (confirmLower != "yes") {
+                            cout << "Confirm cancellation? Yes or No: ";
+                            getline(cin, confirm);
+                            if (confirm != "Yes" && confirm != "yes") {
                                 cout << "Cancellation aborted.\n";
                                 processComplete = true;
                                 break;
@@ -1102,19 +1042,9 @@ public:
                 }
                 case 7: {
                     string logout;
-                    while (true) {
-                        cout << "Logout? Yes or No: ";
-                        getline(cin, logout);
-                        string logoutLower = logout;
-                        transform(logoutLower.begin(), logoutLower.end(), logoutLower.begin(), ::tolower);
-                        if (logoutLower == "yes" || logoutLower == "no") {
-                            break;
-                        }
-                        cout << "Invalid choice! Choose between Yes or no\n";
-                    }
-                    string logoutLower = logout;
-                    transform(logoutLower.begin(), logoutLower.end(), logoutLower.begin(), ::tolower);
-                    if (logoutLower == "yes") {
+                    cout << "Logout? Yes or No: ";
+                    getline(cin, logout);
+                    if (logout == "Yes" || logout == "yes") {
                         return true; // Logout
                     }
                     break; // Continue in menu
@@ -1127,6 +1057,8 @@ public:
 
 // -------- Main Driver --------
 int main() {
+
+
     const string adminUsername = "admin";
     const string adminPassword = "admin123";
 
