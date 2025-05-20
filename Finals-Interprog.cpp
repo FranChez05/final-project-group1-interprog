@@ -591,9 +591,9 @@ public:
 
                     // Confirmation prompt
                     string confirm;
-                    cout << "Confirm update? Yes or No: ";
+                    cout << "Confirm update? (Y/N): ";
                     getline(cin, confirm);
-                    if (confirm != "Yes" && confirm != "yes") {
+                    if (confirm != "Yes" && confirm != "yes" && confirm != "Y" && confirm != "y") {
                         cout << "Update cancelled.\n";
                         break;
                     }
@@ -632,9 +632,9 @@ public:
 
                             // Confirmation prompt
                             string confirm;
-                            cout << "Confirm cancellation? Yes or No: ";
+                            cout << "Confirm cancellation? (Y/N): ";
                             getline(cin, confirm);
-                            if (confirm != "Yes" && confirm != "yes") {
+                            if (confirm != "Yes" && confirm != "yes" && confirm != "Y" && confirm != "y") {
                                 cout << "Cancellation aborted.\n";
                                 processComplete = true;
                                 break;
@@ -653,9 +653,9 @@ public:
                 }
                 case 6: {
                     string logout;
-                    cout << "Logout? Yes or No: ";
+                    cout << "Logout? (Y/N): ";
                     getline(cin, logout);
-                    if (logout == "Yes" || logout == "yes") {
+                    if (logout == "Yes" || logout == "yes" || logout == "Y" || logout == "y") {
                         return true; // Logout
                     }
                     break; // Continue in menu
@@ -665,6 +665,7 @@ public:
         return false; // Default: continue in menu
     }
 };
+
 
 class Receptionist : public User {
 public:
@@ -708,22 +709,18 @@ public:
 class Admin : public User {
 public:
     Admin(const string& name) : User(name, "Admin") {}
+    
     bool showMenu() override {
         bool isRunning = true;
         while (isRunning) {
             string input;
             int choice;
             cout << "\n[Admin Menu - " << username << "]\n";
-            cout << "1. View Logs\n";
-            cout << "2. View Table Availability\n";
-            cout << "3. Update Reservation\n";
-            cout << "4. Cancel Reservation\n";
-            cout << "5. Create Receptionist Account\n";
-            cout << "6. Exit\nChoice: ";
+            cout << "1. View Logs\n2. View Table Availability\n3. Update Reservation\n4. Cancel Reservation\n5. Exit\nChoice: ";
             getline(cin, input);
 
-            if (!validateNumericInput(input, choice, 1, 6)) {
-                cout << "Invalid choice. Please enter a single number between 1 and 6 (e.g., 1, not 1a, 1.1, or 1 1).\n";
+            if (!validateNumericInput(input, choice, 1, 5)) {
+                cout << "Invalid choice. Please enter a single number between 1 and 5 (e.g., 1, not 1a, 1.1, or 1 1).\n";
                 continue;
             }
 
@@ -735,89 +732,80 @@ public:
                     ReservationManager::getInstance().viewTableAvailability();
                     break;
                 case 3: {
-                    // Implementation for updating a reservation
-                    string customerName, reservationId, newId, newName, newPhone, newDate, newTime, newPartySizeInput, newTableChoiceInput;
-                    int newPartySize, newTableChoice;
+                    string reservationId, newId, newName, newPhone, newDate, newTime, newPartySizeInput;
+                    int newPartySize;
 
-                    cout << "Enter customer name: ";
-                    getline(cin, customerName);
-                    
-                    if (!ReservationManager::getInstance().hasReservations(customerName)) {
-                        cout << "No reservations found for this customer.\n";
+                    cout << "Enter reservation ID to update (e.g., ID 1A): ";
+                    getline(cin, reservationId);
+
+                    // Check if the reservation ID exists
+                    if (!ReservationManager::getInstance().reservationIdExists(reservationId)) {
+                        cout << "Error: Reservation ID does not exist.\n";
+                        break;
+                    }
+
+                    // Proceed with updating the reservation
+                    while (true) {
+                        cout << "Enter new ID (or 0 to keep current): ";
+                        getline(cin, newId);
+                        if (newId == "0") break;
+                        if (!validateReservationId(newId) || ReservationManager::getInstance().reservationIdExists(newId, reservationId)) {
+                            cout << "Error: Invalid new reservation ID format or ID already exists.\n";
+                            continue;
+                        }
                         break;
                     }
 
                     while (true) {
-                        cout << "Enter reservation ID to update (e.g., ID 1A): ";
-                        getline(cin, reservationId);
-                        try {
-                            if (!validateReservationId(reservationId)) {
-                                throw ReservationException("Invalid reservation ID format. Use 'ID <number>A', e.g., ID 1A.");
-                            }
-                            if (!ReservationManager::getInstance().hasReservations(customerName)) {
-                                throw ReservationException("No reservation to update.");
-                            }
-                            break;
-                        } catch (const ReservationException& ex) {
-                            cout << "Error: " << ex.what() << endl;
-                        }
+                        cout << "Enter new name (or 0 to keep current): ";
+                        getline(cin, newName);
+                        if (newName == "0") break;
+                        break; // No validation needed for name
                     }
 
-                    // Show current reservation
-                    ReservationManager::getInstance().viewCustomerReservations(customerName);
-
-                    // Get update information
-                    cout << "Enter new ID (or 0 to keep current): ";
-                    getline(cin, newId);
-                    cout << "Enter new name (or 0 to keep current): ";
-                    getline(cin, newName);
-                    
                     while (true) {
                         cout << "Enter new phone number (e.g., 123-456-7890, or 0 to keep current): ";
                         getline(cin, newPhone);
-                        if (newPhone == "0" || validatePhoneNumber(newPhone)) break;
+                        if (newPhone == "0") break;
+                        if (validatePhoneNumber(newPhone)) break;
                         cout << "Error: Invalid phone number format. Use XXX-XXX-XXXX.\n";
                     }
 
                     while (true) {
-                        cout << "Enter new party size (or 0 to keep current): ";
+                        cout << "Enter new party size (must be at least 1, or 0 to keep current): ";
                         getline(cin, newPartySizeInput);
                         if (newPartySizeInput == "0") {
                             newPartySize = 0;
                             break;
                         }
-                        if (validateNumericInput(newPartySizeInput, newPartySize, 1, INT_MAX)) break;
-                        cout << "Error: Invalid party size.\n";
+                        if (!validateNumericInput(newPartySizeInput, newPartySize, 1, INT_MAX) || !validatePartySize(newPartySize)) {
+                            cout << "Error: Invalid party size. Must be a single number >= 1.\n";
+                            continue;
+                        }
+                        break;
                     }
 
                     while (true) {
-                        cout << "Enter new date (YYYY-MM-DD, or 0 to keep current): ";
+                        cout << "Enter new date (e.g., YYYY-MM-DD, or 0 to keep current): ";
                         getline(cin, newDate);
-                        if (newDate == "0" || validateDate(newDate)) break;
-                        cout << "Error: Invalid date format.\n";
+                        if (newDate == "0") break;
+                        if (validateDate(newDate)) break;
+                        cout << "Error: Invalid date format (use YYYY-MM-DD) or date is in the past.\n";
                     }
 
                     while (true) {
-                        cout << "Enter new time (HH:MM, or 0 to keep current): ";
+                        cout << "Enter new time (e.g., HH:MM in 24-hour format, or 0 to keep current): ";
                         getline(cin, newTime);
-                        if (newTime == "0" || validateTime(newTime, newDate != "0" ? newDate : CURRENT_DATE)) break;
-                        cout << "Error: Invalid time format.\n";
+                        if (newTime == "0") break;
+                        if (validateTime(newTime, newDate != "0" ? newDate : CURRENT_DATE)) break;
+                        cout << "Error: Invalid time format (use HH:MM) or time is in the past for today.\n";
                     }
 
-                    while (true) {
-                        cout << "Table options: 0 to keep current, or enter table number (1-10):\n";
-                        ReservationManager::getInstance().viewTableAvailability();
-                        cout << "Choice: ";
-                        getline(cin, newTableChoiceInput);
-                        if (validateNumericInput(newTableChoiceInput, newTableChoice, 0, 10)) break;
-                        cout << "Error: Invalid table choice.\n";
-                    }
-
+                    // Update the reservation
                     try {
-                        int newTableIndex = (newTableChoice != 0) ? newTableChoice - 1 : -1;
-                        ReservationManager::getInstance().updateReservation(reservationId, customerName, 
-                                                                          newId, newName, newPhone, newPartySize, 
-                                                                          newDate, newTime, newTableIndex);
+                        ReservationManager::getInstance().updateReservation(reservationId, username, 
+                                                                            newId, newName, newPhone, newPartySize, 
+                                                                            newDate, newTime, -1); // -1 indicates no table change
                         cout << "Reservation updated successfully.\n";
                     } catch (const ReservationException& ex) {
                         cout << "Error: " << ex.what() << endl;
@@ -825,22 +813,19 @@ public:
                     break;
                 }
                 case 4: {
-                    // Implementation for canceling a reservation
-                    string customerName, reservationId;
-                    
-                    cout << "Enter customer name: ";
-                    getline(cin, customerName);
-                    
-                    if (!ReservationManager::getInstance().hasReservations(customerName)) {
-                        cout << "No reservations found for this customer.\n";
-                        break;
-                    }
-
+                    string reservationId;
                     cout << "Enter reservation ID to cancel (e.g., ID 1A): ";
                     getline(cin, reservationId);
 
+                    // Check if the reservation ID exists
+                    if (!ReservationManager::getInstance().reservationIdExists(reservationId)) {
+                        cout << "Error: Reservation ID does not exist.\n";
+                        break;
+                    }
+
+                    // Proceed with cancellation
                     try {
-                        ReservationManager::getInstance().cancelReservation(reservationId, customerName);
+                        ReservationManager::getInstance().cancelReservation(reservationId, username);
                         cout << "Reservation cancelled successfully.\n";
                     } catch (const ReservationException& ex) {
                         cout << "Error: " << ex.what() << endl;
@@ -848,38 +833,20 @@ public:
                     break;
                 }
                 case 5: {
-                    string recUsername, recPassword;
-                    while (true) {
-                        cout << "Enter new receptionist username: ";
-                        getline(cin, recUsername);
-                        if (receptionistAccounts.count(recUsername)) {
-                            cout << "Username already exists. Please choose a different username.\n";
-                            continue;
-                        }
-                        break;
+                    string logout;
+                    cout << "Logout? Yes or No: ";
+                    getline(cin, logout);
+                    if (logout == "Yes" || logout == "yes") {
+                        return true; // Logout
                     }
-                    cout << "Enter password: ";
-                    getline(cin, recPassword);
-                    receptionistAccounts[recUsername] = recPassword;
-                    cout << "Receptionist account created.\n";
-                    break;
+                    break; // Continue in menu
                 }
-                case 6: {
-    string logout;
-    cout << "Logout? (Y/N or Yes/No): ";
-    getline(cin, logout);
-    // Convert to lowercase for case-insensitive comparison
-    transform(logout.begin(), logout.end(), logout.begin(), ::tolower);
-    if (logout == "yes" || logout == "y") {
-        return true; // Logout
-    }
-    break;
-}
             }
         }
-        return false;
+        return false; // Default: continue in menu
     }
 };
+
 
 // -------- Main Driver --------
 int main() {
