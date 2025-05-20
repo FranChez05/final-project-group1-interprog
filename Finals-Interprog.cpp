@@ -9,17 +9,36 @@
 #include <fstream>
 #include <climits>
 #include <algorithm>
+#include <ctime> // Added for system time
 using namespace std;
-
-const string CURRENT_DATE = "2025-05-19";
-const int CURRENT_HOUR = 22;
-const int CURRENT_MINUTE = 19;
 
 // -------- Helper Function for Case-Insensitive Handling --------
 string toUpperCase(const string& str) {
     string upper = str;
     transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
     return upper;
+}
+
+// -------- Helper Functions for Current System Time --------
+string getCurrentDate() {
+    time_t now = time(nullptr);
+    char buf[11]; // YYYY-MM-DD + null terminator
+    strftime(buf, sizeof(buf), "%Y-%m-%d", localtime(&now));
+    return string(buf);
+}
+
+string getCurrentTime() {
+    time_t now = time(nullptr);
+    char buf[6]; // HH:MM + null terminator
+    strftime(buf, sizeof(buf), "%H:%M", localtime(&now));
+    return string(buf);
+}
+
+void getCurrentHourMinute(int& hour, int& minute) {
+    time_t now = time(nullptr);
+    struct tm* local = localtime(&now);
+    hour = local->tm_hour;
+    minute = local->tm_min;
 }
 
 // -------- Exception Handling --------
@@ -60,7 +79,7 @@ bool validateDate(const string& date) {
     if (month < 1 || month > 12 || day < 1 || day > 31) {
         return false; 
     }
-    string currentDate = CURRENT_DATE;
+    string currentDate = getCurrentDate();
     if (date < currentDate) {
         return false; 
     }
@@ -77,8 +96,10 @@ bool validateTime(const string& time, const string& date) {
     if (hour < 0 || hour > 23 || minute < 0 || minute > 59) {
         return false;
     }
-    if (date == CURRENT_DATE) {
-        if (hour < CURRENT_HOUR || (hour == CURRENT_HOUR && minute <= CURRENT_MINUTE)) {
+    if (date == getCurrentDate()) {
+        int currentHour, currentMinute;
+        getCurrentHourMinute(currentHour, currentMinute);
+        if (hour < currentHour || (hour == currentHour && minute <= currentMinute)) {
             return false; 
         }
     }
@@ -127,10 +148,10 @@ private:
     }
 
     string getCurrentTimestamp() {
-        ostringstream oss;
-        oss << CURRENT_DATE << " " << (CURRENT_HOUR < 10 ? "0" : "") << CURRENT_HOUR << ":"
-            << (CURRENT_MINUTE < 10 ? "0" : "") << CURRENT_MINUTE << ":00";
-        return oss.str();
+        time_t now = time(nullptr);
+        char buf[20]; // YYYY-MM-DD HH:MM:SS + null terminator
+        strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", localtime(&now));
+        return string(buf);
     }
 
     void writeLogToFile(const string& logEntry) {
@@ -417,7 +438,7 @@ public:
         if (newDate != "0" && !validateDate(newDate)) {
             throw ReservationException("Invalid date format (use YYYY-MM-DD) or date is in the past.");
         }
-        if (newTime != "0" && !validateTime(newTime, newDate != "0" ? newDate : CURRENT_DATE)) {
+        if (newTime != "0" && !validateTime(newTime, newDate != "0" ? newDate : getCurrentDate())) {
             throw ReservationException("Invalid time format (use HH:MM) or time is in the past for today.");
         }
 
@@ -562,8 +583,8 @@ public:
             int choice;
             cout << "\n[Customer Menu - " << username << "]\n";
             cout << "1. View My Reservations\n";
-            cout << "2. View Availability\n";
-            cout << "3. Reserve Table\n";
+            cout << "2. Reserve Table\n";
+            cout << "3. View Availability\n";
             cout << "4. Update Reservation\n";
             cout << "5. Cancel Reservation\n";
             cout << "6. Exit\nChoice: ";
@@ -612,7 +633,7 @@ public:
                     }
 
                     while (true) {
-                        cout << "Enter reservation date (e.g., YYYY-MM-DD, must be on or after 2025-05-19): ";
+                        cout << "Enter reservation date (e.g., YYYY-MM-DD, must be on or after " << getCurrentDate() << "): ";
                         getline(cin, date);
                         if (validateDate(date)) {
                             break;
@@ -624,7 +645,7 @@ public:
                     }
 
                     while (true) {
-                        cout << "Enter reservation time (e.g., HH:MM in 24-hour format, must be after 22:19 if today): ";
+                        cout << "Enter reservation time (e.g., HH:MM in 24-hour format, must be after " << getCurrentTime() << " if today): ";
                         getline(cin, time);
                         if (validateTime(time, date)) {
                             break;
@@ -776,7 +797,7 @@ public:
                     }
 
                     while (true) {
-                        cout << "Enter new date (e.g., YYYY-MM-DD, must be on or after 2025-05-19, or 0 to keep current): ";
+                        cout << "Enter new date (e.g., YYYY-MM-DD, must be on or after " << getCurrentDate() << ", or 0 to keep current): ";
                         getline(cin, newDate);
                         if (newDate == "0") break;
                         if (validateDate(newDate)) break;
@@ -787,10 +808,10 @@ public:
                     }
 
                     while (true) {
-                        cout << "Enter new time (e.g., HH:MM in 24-hour format, must be after 22:19 if today, or 0 to keep current): ";
+                        cout << "Enter new time (e.g., HH:MM in 24-hour format, must be after " << getCurrentTime() << " if today, or 0 to keep current): ";
                         getline(cin, newTime);
                         if (newTime == "0") break;
-                        if (validateTime(newTime, newDate != "0" ? newDate : CURRENT_DATE)) break;
+                        if (validateTime(newTime, newDate != "0" ? newDate : getCurrentDate())) break;
                         cout << "Error: Invalid time format (use HH:MM) or time is in the past for today.\n";
                         ReservationManager::getInstance().logError("Customer", username, "Failed to update reservation", 
                                                                  "Invalid time format or time is in the past.", 
@@ -1120,7 +1141,7 @@ public:
                     }
 
                     while (true) {
-                        cout << "Enter new date (e.g., YYYY-MM-DD, must be on or after 2025-05-19, or 0 to keep current): ";
+                        cout << "Enter new date (e.g., YYYY-MM-DD, must be on or after " << getCurrentDate() << ", or 0 to keep current): ";
                         getline(cin, newDate);
                         if (newDate == "0") break;
                         if (validateDate(newDate)) break;
@@ -1131,10 +1152,10 @@ public:
                     }
 
                     while (true) {
-                        cout << "Enter new time (e.g., HH:MM in 24-hour format, must be after 22:19 if today, or 0 to keep current): ";
+                        cout << "Enter new time (e.g., HH:MM in 24-hour format, must be after " << getCurrentTime() << " if today, or 0 to keep current): ";
                         getline(cin, newTime);
                         if (newTime == "0") break;
-                        if (validateTime(newTime, newDate != "0" ? newDate : CURRENT_DATE)) break;
+                        if (validateTime(newTime, newDate != "0" ? newDate : getCurrentDate())) break;
                         cout << "Error: Invalid time format (use HH:MM) or time is in the past for today.\n";
                         ReservationManager::getInstance().logError("Admin", username, "Failed to update reservation", 
                                                                  "Invalid time format or time is in the past.", 
