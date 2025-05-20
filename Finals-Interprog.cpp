@@ -9,7 +9,7 @@
 #include <fstream>
 #include <climits>
 #include <algorithm>
-#include <ctime> // Added for system time
+#include <ctime>
 using namespace std;
 
 // -------- Helper Function for Case-Insensitive Handling --------
@@ -1278,21 +1278,39 @@ public:
                 }
                 case 6: {
                     string recUsername, recPassword;
+                    Receptionist temp("", ""); // Temporary object for validation
                     while (true) {
-                        cout << "Enter new receptionist username: ";
+                        cout << "Enter new receptionist username (letters and numbers only): ";
                         getline(cin, recUsername);
+                        if (!temp.isValidCredential(recUsername)) {
+                            cout << "Invalid username. Use letters and numbers only (no spaces or special characters).\n";
+                            ReservationManager::getInstance().logError("Admin", username, "Failed to create receptionist account", 
+                                                                     "Invalid username format.", "", recUsername);
+                            continue;
+                        }
                         if (receptionistAccounts.count(recUsername)) {
                             cout << "Username already exists. Please choose a different username.\n";
+                            ReservationManager::getInstance().logError("Admin", username, "Failed to create receptionist account", 
+                                                                     "Username already exists.", "", recUsername);
                             continue;
                         }
                         break;
                     }
-                    cout << "Enter password: ";
-                    getline(cin, recPassword);
+                    while (true) {
+                        cout << "Enter password (letters and numbers only): ";
+                        getline(cin, recPassword);
+                        if (!temp.isValidCredential(recPassword)) {
+                            cout << "Invalid password. Use letters and numbers only (no spaces or special characters).\n";
+                            ReservationManager::getInstance().logError("Admin", username, "Failed to create receptionist account", 
+                                                                     "Invalid password format.", "", recUsername);
+                            continue;
+                        }
+                        break;
+                    }
                     receptionistAccounts[recUsername] = recPassword;
                     cout << "Receptionist account created.\n";
                     ReservationManager::getInstance().logReservationAction("Admin", username, "Created receptionist account", 
-                                                                         "Username: " + recUsername);
+                                                                         "Account created for " + recUsername);
                     break;
                 }
                 case 7: {
