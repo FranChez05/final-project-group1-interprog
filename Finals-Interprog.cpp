@@ -8,11 +8,19 @@
 #include <regex>
 #include <fstream>
 #include <climits>
+#include <algorithm>
 using namespace std;
 
 const string CURRENT_DATE = "2025-05-19";
 const int CURRENT_HOUR = 22;
 const int CURRENT_MINUTE = 19;
+
+// -------- Helper Function for Case-Insensitive Handling --------
+string toUpperCase(const string& str) {
+    string upper = str;
+    transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+    return upper;
+}
 
 // -------- Exception Handling --------
 class ReservationException : public exception {
@@ -33,7 +41,7 @@ struct Reservation {
     int tableNumber;
 
     Reservation(const string& id, const string& name, const string& phone, int size, const string& date, const string& time, int table)
-        : id(id), customerName(name), phoneNumber(phone), partySize(size), date(date), time(time), tableNumber(table) {}
+        : id(toUpperCase(id)), customerName(name), phoneNumber(phone), partySize(size), date(date), time(time), tableNumber(table) {}
 };
 
 // -------- Validation Functions --------
@@ -82,11 +90,11 @@ bool validatePartySize(int size) {
 }
 
 bool validateReservationId(const string& id) {
-    regex idRegex("ID \\d+A"); // e.g., "ID 1A"
-    return regex_match(id, idRegex);
+    string upperId = toUpperCase(id);
+    regex idRegex("ID \\d+A");
+    return regex_match(upperId, idRegex);
 }
 
-// -------- Input Validation Function --------
 bool validateNumericInput(const string& input, int& result, int minVal, int maxVal) {
     if (input.empty() || !all_of(input.begin(), input.end(), ::isdigit)) {
         return false;
@@ -113,7 +121,10 @@ private:
     vector<Reservation> reservations;
     static unique_ptr<ReservationManager> instance;
     int nextReservationId;
-    ReservationManager() : tables(10, true), nextReservationId(1) {}
+
+    ReservationManager() : tables(10, true), nextReservationId(1) {
+        loadReservations();
+    }
 
     string getCurrentTimestamp() {
         ostringstream oss;
@@ -123,7 +134,7 @@ private:
     }
 
     void writeLogToFile(const string& logEntry) {
-        ofstream logFile("logs.txt", ios::app); // Append mode
+        ofstream logFile("logs.txt", ios::app);
         if (logFile.is_open()) {
             logFile << logEntry << "\n";
             logFile.close();
@@ -132,17 +143,88 @@ private:
         }
     }
 
+    void saveReservations() {
+        ofstream resFile("reservations.txt");
+        if (!resFile.is_open()) {
+            throw ReservationException("Unable to open reservations file for writing.");
+        }
+        for (const auto& res : reservations) {
+            resFile << res.id << "|" << res.customerName << "|" << res.phoneNumber << "|"
+                    << res.partySize << "|" << res.date << "|" << res.time << "|"
+                    << res.tableNumber << "\n";
+        }
+        resFile.close();
+
+        // Save nextReservationId
+        ofstream idFile("next_id.txt");
+        if (!idFile.is_open()) {
+            throw ReservationException("Unable to open next_id file for writing.");
+        }
+        idFile << nextReservationId << "\n";
+        idFile.close();
+    }
+
+    void loadReservations() {
+        // Load reservations
+        ifstream resFile("reservations.txt");
+        if (resFile.is_open()) {
+            string line;
+            while (getline(resFile, line)) {
+                stringstream ss(line);
+                string id, customerName, phoneNumber, date, time;
+                int partySize, tableNumber;
+                getline(ss, id, '|');
+                getline(ss, customerName, '|');
+                getline(ss, phoneNumber, '|');
+                ss >> partySize;
+                ss.ignore(1); // Skip '|'
+                getline(ss, date, '|');
+                getline(ss, time, '|');
+                ss >> tableNumber;
+
+                // Mark table as booked
+                if (tableNumber >= 0 && tableNumber < tables.size()) {
+                    tables[tableNumber] = false;
+                }
+
+                // Add reservation
+                reservations.emplace_back(id, customerName, phoneNumber, partySize, date, time, tableNumber);
+
+                // Update nextReservationId based on ID
+                string numStr = id.substr(3, id.length() - 4); // Extract number from "ID <number>A"
+                try {
+                    int idNum = stoi(numStr);
+                    nextReservationId = max(nextReservationId, idNum + 1);
+                } catch (...) {
+                    // Ignore invalid IDs
+                }
+            }
+            resFile.close();
+        }
+
+        // Load nextReservationId
+        ifstream idFile("next_id.txt");
+        if (idFile.is_open()) {
+            int savedId;
+            if (idFile >> savedId) {
+                nextReservationId = max(nextReservationId, savedId);
+            }
+            idFile.close();
+        }
+    }
+
 public:
     bool reservationIdExists(const string& id, const string& excludeId = "") {
+        string upperId = toUpperCase(id);
+        string upperExcludeId = toUpperCase(excludeId);
         for (const auto& res : reservations) {
-            if (res.id == id && res.id != excludeId) {
+            if (res.id == upperId && res.id != upperExcludeId) {
                 return true;
             }
         }
         return false;
     }
 
-public:
     static ReservationManager& getInstance() {
         if (!instance)
             instance.reset(new ReservationManager());
@@ -214,19 +296,21 @@ public:
         } while (reservationIdExists(reservationId));
 
         reservations.emplace_back(reservationId, customerName, phoneNumber, partySize, date, time, tableNumber);
+        saveReservations();
         logReservationAction("Customer", customerName, "Reserved table", "#" + to_string(tableNumber + 1) + " for " + 
                             to_string(partySize) + " on " + date + " at " + time);
         return tableNumber;
     }
 
     void cancelReservation(const string& reservationId, const string& customerName) {
-        if (!validateReservationId(reservationId)) {
+        string upperId = toUpperCase(reservationId);
+        if (!validateReservationId(upperId)) {
             throw ReservationException("Invalid reservation ID format. Use 'ID <number>A', e.g., ID 1A.");
         }
         bool hasReservation = false;
         int tableIndex = -1;
         for (const auto& res : reservations) {
-            if (res.id == reservationId) {
+            if (res.id == upperId) {
                 hasReservation = true;
                 tableIndex = res.tableNumber;
                 break;
@@ -238,13 +322,14 @@ public:
         tables[tableIndex] = true;
         auto it = reservations.begin();
         while (it != reservations.end()) {
-            if (it->id == reservationId) {
+            if (it->id == upperId) {
                 it = reservations.erase(it);
             } else {
                 ++it;
             }
         }
-        logReservationAction("Customer", customerName, "Cancelled reservation", "ID " + reservationId);
+        saveReservations();
+        logReservationAction("Customer", customerName, "Cancelled reservation", "ID " + upperId);
     }
 
     void viewCustomerReservations(const string& customerName) {
@@ -267,12 +352,14 @@ public:
     void updateReservation(const string& reservationId, const string& customerName, 
                            const string& newId, const string& newName, const string& newPhone, int newPartySize, 
                            const string& newDate, const string& newTime, int newTableIndex) {
-        if (!validateReservationId(reservationId)) {
+        string upperId = toUpperCase(reservationId);
+        string upperNewId = newId == "0" ? "0" : toUpperCase(newId);
+        if (!validateReservationId(upperId)) {
             throw ReservationException("Invalid reservation ID format. Use 'ID <number>A', e.g., ID 1A.");
         }
         bool hasReservation = false;
         for (const auto& res : reservations) {
-            if (res.id == reservationId) {
+            if (res.id == upperId) {
                 hasReservation = true;
                 break;
             }
@@ -281,11 +368,11 @@ public:
             throw ReservationException("No reservation to update.");
         }
 
-        if (newId != "0") {
-            if (!validateReservationId(newId)) {
+        if (upperNewId != "0") {
+            if (!validateReservationId(upperNewId)) {
                 throw ReservationException("Invalid new reservation ID format. Use 'ID <number>A', e.g., ID 1A.");
             }
-            if (reservationIdExists(newId, reservationId)) {
+            if (reservationIdExists(upperNewId, upperId)) {
                 throw ReservationException("New reservation ID already exists. Choose a different ID.");
             }
         }
@@ -304,7 +391,7 @@ public:
 
         int oldTableIndex = -1;
         for (auto& res : reservations) {
-            if (res.id == reservationId) {
+            if (res.id == upperId) {
                 oldTableIndex = res.tableNumber;
                 break;
             }
@@ -315,7 +402,7 @@ public:
             }
             tables[oldTableIndex] = true;
             if (!tables[newTableIndex]) {
-                tables[oldTableIndex] = false; // Revert the change
+                tables[oldTableIndex] = false;
                 throw ReservationException("Selected table is already booked.");
             }
             tables[newTableIndex] = false;
@@ -324,8 +411,8 @@ public:
         }
 
         for (auto& res : reservations) {
-            if (res.id == reservationId) {
-                if (newId != "0") res.id = newId;
+            if (res.id == upperId) {
+                if (upperNewId != "0") res.id = upperNewId;
                 if (newName != "0") res.customerName = newName;
                 if (newPhone != "0") res.phoneNumber = newPhone;
                 if (newPartySize != 0) res.partySize = newPartySize;
@@ -335,7 +422,8 @@ public:
                 break;
             }
         }
-        logReservationAction("Customer", customerName, "Updated reservation", "ID " + reservationId);
+        saveReservations();
+        logReservationAction("Customer", customerName, "Updated reservation", "ID " + upperId);
     }
 
     void viewLogs() {
@@ -451,27 +539,43 @@ public:
                         ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", "Invalid time format or time is in the past.");
                     }
 
-                    while (true) {
+                    bool reservationComplete = false;
+                    while (!reservationComplete) {
                         cout << "Available tables:\n";
                         ReservationManager::getInstance().viewTableAvailability();
-                        cout << "Enter table number to reserve (1-10): ";
+                        cout << "Enter table number to reserve (1-10, or 0 to cancel): ";
                         getline(cin, tableInput);
+
+                        // Check for cancellation
+                        if (tableInput == "0") {
+                            cout << "Reservation cancelled.\n";
+                            reservationComplete = true;
+                            break;
+                        }
+
                         if (!validateNumericInput(tableInput, tableNumber, 1, 10)) {
                             cout << "Error: Invalid table number. Must be a single number between 1 and 10 (e.g., 1, not 1a, 1.1, or 1 1).\n";
                             ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", "Invalid table number.");
                             continue;
                         }
                         tableNumber--; // Convert to 0-based index
-                        break;
-                    }
 
-                    try {
-                        int table = ReservationManager::getInstance().reserveTable(username, phoneNumber, partySize, date, time, tableNumber);
-                        cout << "Reserved Table #" << table + 1 << " successfully!\n";
-                    } catch (const ReservationException& ex) {
-                        cout << "Error: " << ex.what() << endl;
-                        ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", ex.what());
-                        cout << "Reservation failed. Returning to menu.\n";
+                        try {
+                            int table = ReservationManager::getInstance().reserveTable(username, phoneNumber, partySize, date, time, tableNumber);
+                            cout << "Reserved Table #" << table + 1 << " successfully!\n";
+                            reservationComplete = true;
+                        } catch (const ReservationException& ex) {
+                            if (string(ex.what()) == "Selected table is already booked.") {
+                                cout << "Error: Selected table is already booked. Please choose a different table.\n";
+                                ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", ex.what());
+                            } else {
+                                // Other errors (e.g., invalid phone, date, etc.) should exit to menu
+                                cout << "Error: " << ex.what() << endl;
+                                ReservationManager::getInstance().logError("Customer", username, "Failed to reserve table", ex.what());
+                                cout << "Reservation failed. Returning to menu.\n";
+                                reservationComplete = true;
+                            }
+                        }
                     }
                     break;
                 }
@@ -490,6 +594,7 @@ public:
                     while (true) {
                         cout << "Enter reservation ID to update (e.g., ID 1A): ";
                         getline(cin, reservationId);
+                        reservationId = toUpperCase(reservationId);
                         try {
                             if (!validateReservationId(reservationId)) {
                                 throw ReservationException("Invalid reservation ID format. Use 'ID <number>A', e.g., ID 1A.");
@@ -515,6 +620,7 @@ public:
                     while (true) {
                         cout << "Enter new ID (e.g., ID 2A, or 0 to keep current): ";
                         getline(cin, newId);
+                        newId = toUpperCase(newId);
                         if (newId == "0") break;
                         try {
                             if (!validateReservationId(newId)) {
@@ -633,6 +739,7 @@ public:
                             string reservationId;
                             cout << "Enter reservation ID to cancel (e.g., ID 1A): ";
                             getline(cin, reservationId);
+                            reservationId = toUpperCase(reservationId);
 
                             // Show the reservation to confirm
                             ReservationManager::getInstance().viewCustomerReservations(username);
@@ -804,6 +911,7 @@ public:
                     while (true) {
                         cout << "Enter reservation ID to update (e.g., ID 1A): ";
                         getline(cin, reservationId);
+                        reservationId = toUpperCase(reservationId);
                         try {
                             if (!validateReservationId(reservationId)) {
                                 throw ReservationException("Invalid reservation ID format. Use 'ID <number>A', e.g., ID 1A.");
@@ -844,6 +952,7 @@ public:
                     while (true) {
                         cout << "Enter new ID (e.g., ID 2A, or 0 to keep current): ";
                         getline(cin, newId);
+                        newId = toUpperCase(newId);
                         if (newId == "0") break;
                         try {
                             if (!validateReservationId(newId)) {
@@ -965,6 +1074,7 @@ public:
                             string customerName;
                             cout << "Enter reservation ID to cancel (e.g., ID 1A): ";
                             getline(cin, reservationId);
+                            reservationId = toUpperCase(reservationId);
 
                             // Validate reservation ID and find customer name
                             if (!validateReservationId(reservationId)) {
