@@ -920,7 +920,7 @@ public:
             getline(cin, input);
 
             if (!validateNumericInput(input, choice, 1, 3)) {
-                cout << "Invalid choice. Please enter a single number between 1 and 3 (e.g., 1, not 1a, 1.1, or 1 1).\n";
+                cout << "Invalid choice. Please enter a single number between 1 and 3.\n";
                 continue;
             }
 
@@ -982,7 +982,7 @@ public:
             getline(cin, input);
 
             if (!validateNumericInput(input, choice, 1, 7)) {
-                cout << "Invalid choice. Please enter a single number between 1 and 7 (e.g., 1, not 1a, 1.1, or 1 1).\n";
+                cout << "Invalid choice. Please enter a single number between 1 and 7.\n";
                 continue;
             }
 
@@ -1306,7 +1306,7 @@ int main() {
         getline(cin, input);
 
         if (!validateNumericInput(input, roleChoice, 1, 4)) {
-            cout << "Invalid choice. Please enter a single number between 1 and 4 (e.g., 1, not 1a, 1.1, or 1 1).\n";
+            cout << "Invalid choice. Please enter a single number between 1 and 4.\n";
             continue;
         }
 
@@ -1348,7 +1348,7 @@ int main() {
                     if (validateNumericInput(custInput, custOption, 1, 2)) {
                         break;
                     }
-                    cout << "Invalid choice. Please enter a single number between 1 and 2 (e.g., 1, not 1a, 1.1, or 1 1).\n";
+                    cout << "Invalid choice. Please enter a single number between 1 and 2.\n";
                 }
 
                 if (custOption == 1) {
