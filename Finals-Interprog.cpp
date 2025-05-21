@@ -12,8 +12,8 @@
 using namespace std;
 
 const string CURRENT_DATE = "2025-05-22";
-const int CURRENT_HOUR = 8;
-const int CURRENT_MINUTE = 30;
+const int CURRENT_HOUR = 22;
+const int CURRENT_MINUTE = 19;
 
 // -------- Helper Function for Case-Insensitive Handling --------
 string toUpperCase(const string& str) {
