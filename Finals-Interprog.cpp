@@ -599,7 +599,7 @@ public:
             getline(cin, input);
 
             if (!validateNumericInput(input, choice, 1, 6)) {
-                cout << "Invalid choice. Please enter a single number between 1 and 6 (e.g., 1, not 1a, 1.1, or 1 1).\n";
+                cout << "Invalid choice. Please enter a single number between 1 and 6.\n";
                 continue;
             }
 
