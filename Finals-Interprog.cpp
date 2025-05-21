@@ -186,14 +186,12 @@ private:
 
                 reservations.emplace_back(id, customerName, phoneNumber, partySize, date, time, tableNumber);
 
-                // Extract numeric part of ID (e.g., "1" from "ID 1A")
                 if (validateReservationId(id)) {
                     string numStr = id.substr(3, id.length() - 4);
                     try {
                         int idNum = stoi(numStr);
                         nextReservationId = max(nextReservationId, idNum + 1);
                     } catch (...) {
-                        // Skip invalid IDs
                     }
                 }
             }
@@ -319,13 +317,12 @@ public:
         }
         tables[tableNumber] = false;
 
-        // Generate new reservation ID
         string reservationId = "ID " + to_string(nextReservationId) + "A";
         while (reservationIdExists(reservationId)) {
             nextReservationId++;
             reservationId = "ID " + to_string(nextReservationId) + "A";
         }
-        nextReservationId++; // Increment for the next reservation
+        nextReservationId++;
 
         reservations.emplace_back(reservationId, customerName, phoneNumber, partySize, date, time, tableNumber);
         saveReservations();
@@ -558,7 +555,6 @@ void loadCustomerAccounts(map<string, string>& accounts) {
 }
 
 // -------- Inheritance for Roles --------
-// Helper function to check for spaces or empty input
 bool isValidCredential(const string& input) {
     if (input.empty()) {
         return false;
@@ -619,7 +615,6 @@ public:
     }
 
     bool showMenu() override {
-
         bool isRunning = true;
         while (isRunning) {
             string input;
@@ -963,7 +958,6 @@ public:
                 case 1: {
                     cout << "\n--- Current Reservations ---\n";
                     vector<Reservation> allReservations = ReservationManager::getInstance().getAllReservations();
-                   
                     if (allReservations.empty()) {
                         cout << "No reservations found.\n";
                     } else {
@@ -1028,7 +1022,6 @@ public:
                 case 2: {
                     cout << "\n--- Current Reservations ---\n";
                     vector<Reservation> allReservations = ReservationManager::getInstance().getAllReservations();
-                   
                     if (allReservations.empty()) {
                         cout << "No reservations found.\n";
                     } else {
@@ -1294,17 +1287,30 @@ public:
                 }
                 case 6: {
                     string recUsername, recPassword;
-                    while (true) {
-                        cout << "Enter new receptionist username: ";
+                    bool usernameValid = false;
+                    while (!usernameValid) {
+                        cout << "Enter new receptionist username (no spaces allowed): ";
                         getline(cin, recUsername);
+                        if (!isValidCredential(recUsername)) {
+                            cout << "Error: Username cannot be empty or contain spaces.\n";
+                            continue;
+                        }
                         if (receptionistAccounts.count(recUsername)) {
                             cout << "Username already exists. Please choose a different username.\n";
                             continue;
                         }
-                        break;
+                        usernameValid = true;
                     }
-                    cout << "Enter password: ";
-                    getline(cin, recPassword);
+                    bool passwordValid = false;
+                    while (!passwordValid) {
+                        cout << "Enter password (no spaces allowed): ";
+                        getline(cin, recPassword);
+                        if (!isValidCredential(recPassword)) {
+                            cout << "Error: Password cannot be empty or contain spaces.\n";
+                            continue;
+                        }
+                        passwordValid = true;
+                    }
                     receptionistAccounts[recUsername] = recPassword;
                     cout << "Receptionist account created.\n";
                     ReservationManager::getInstance().logReservationAction("Admin", username, "Created receptionist account",
