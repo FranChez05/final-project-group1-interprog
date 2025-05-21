@@ -558,6 +558,14 @@ void loadCustomerAccounts(map<string, string>& accounts) {
 }
 
 // -------- Inheritance for Roles --------
+// Helper function to check for spaces or empty input
+bool isValidCredential(const string& input) {
+    if (input.empty()) {
+        return false;
+    }
+    return none_of(input.begin(), input.end(), ::isspace);
+}
+
 class Customer : public User {
 public:
     Customer(bool isNewAccount) : User("", "Customer", "") {
@@ -565,16 +573,28 @@ public:
         if (isNewAccount) {
             bool usernameValid = false;
             while (!usernameValid) {
-                cout << "Enter username: ";
+                cout << "Enter username (no spaces allowed): ";
                 getline(cin, name);
+                if (!isValidCredential(name)) {
+                    cout << "Error: Username cannot be empty or contain spaces.\n";
+                    continue;
+                }
                 if (customerAccounts.count(name)) {
                     cout << "Account already exists. Please choose a different username.\n";
                     continue;
                 }
                 usernameValid = true;
             }
-            cout << "Enter password: ";
-            getline(cin, password);
+            bool passwordValid = false;
+            while (!passwordValid) {
+                cout << "Enter password (no spaces allowed): ";
+                getline(cin, password);
+                if (!isValidCredential(password)) {
+                    cout << "Error: Password cannot be empty or contain spaces.\n";
+                    continue;
+                }
+                passwordValid = true;
+            }
             customerAccounts[name] = password;
             saveCustomerAccounts(customerAccounts);
             cout << "Customer account created.\n";
@@ -599,6 +619,7 @@ public:
     }
 
     bool showMenu() override {
+
         bool isRunning = true;
         while (isRunning) {
             string input;
