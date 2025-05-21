@@ -238,14 +238,19 @@ public:
         ostringstream logEntry;
         logEntry << "Reservation Log\n"
                  << "Action: " << action << " by " << role << ": " << username << "\n"
-                 << "Details: " << details << "\n"
-                 << "ID: " << (id.empty() ? "N/A" : id) << " | "
-                 << "Name: " << (customerName.empty() ? "N/A" : customerName) << " | "
-                 << "Contact: " << (phoneNumber.empty() ? "N/A" : phoneNumber) << " | "
-                 << "Party-Size: " << (partySize > 0 ? to_string(partySize) : "N/A") << " | "
-                 << "Date: " << (date.empty() ? "N/A" : date) << " | "
-                 << "Time: " << (time.empty() ? "N/A" : time) << " | "
-                 << "Table: " << (tableNumber >= 0 ? to_string(tableNumber + 1) : "N/A");
+                 << "Details: " << details;
+        // Only include reservation details if at least one non-default value is provided
+        if (!id.empty() || !customerName.empty() || !phoneNumber.empty() || partySize > 0 || 
+            !date.empty() || !time.empty() || tableNumber >= 0) {
+            logEntry << "\n"
+                     << "ID: " << (id.empty() ? "N/A" : id) << " | "
+                     << "Name: " << (customerName.empty() ? "N/A" : customerName) << " | "
+                     << "Contact: " << (phoneNumber.empty() ? "N/A" : phoneNumber) << " | "
+                     << "Party-Size: " << (partySize > 0 ? to_string(partySize) : "N/A") << " | "
+                     << "Date: " << (date.empty() ? "N/A" : date) << " | "
+                     << "Time: " << (time.empty() ? "N/A" : time) << " | "
+                     << "Table: " << (tableNumber >= 0 ? to_string(tableNumber + 1) : "N/A");
+        }
         writeLogToFile(logEntry.str());
     }
 
@@ -255,14 +260,19 @@ public:
         ostringstream logEntry;
         logEntry << "Reservation Error Log\n"
                  << "Action: " << action << " by " << role << ": " << username << "\n"
-                 << "Error: " << errorMsg << "\n"
-                 << "ID: " << (id.empty() ? "N/A" : id) << " | "
-                 << "Name: " << (customerName.empty() ? "N/A" : customerName) << " | "
-                 << "Contact: " << (phoneNumber.empty() ? "N/A" : phoneNumber) << " | "
-                 << "Party-Size: " << (partySize > 0 ? to_string(partySize) : "N/A") << " | "
-                 << "Date: " << (date.empty() ? "N/A" : date) << " | "
-                 << "Time: " << (time.empty() ? "N/A" : time) << " | "
-                 << "Table: " << (tableNumber >= 0 ? to_string(tableNumber + 1) : "N/A");
+                 << "Error: " << errorMsg;
+        // Only include reservation details if at least one non-default value is provided
+        if (!id.empty() || !customerName.empty() || !phoneNumber.empty() || partySize > 0 || 
+            !date.empty() || !time.empty() || tableNumber >= 0) {
+            logEntry << "\n"
+                     << "ID: " << (id.empty() ? "N/A" : id) << " | "
+                     << "Name: " << (customerName.empty() ? "N/A" : customerName) << " | "
+                     << "Contact: " << (phoneNumber.empty() ? "N/A" : phoneNumber) << " | "
+                     << "Party-Size: " << (partySize > 0 ? to_string(partySize) : "N/A") << " | "
+                     << "Date: " << (date.empty() ? "N/A" : date) << " | "
+                     << "Time: " << (time.empty() ? "N/A" : time) << " | "
+                     << "Table: " << (tableNumber >= 0 ? to_string(tableNumber + 1) : "N/A");
+        }
         writeLogToFile(logEntry.str());
     }
 
@@ -504,9 +514,7 @@ protected:
     string role;
 public:
     User(const string& name, const string& r, const string& password) : username(name), role(r) {
-        if (role != "Receptionist") {
-            ReservationManager::getInstance().logLogin(role, name, password);
-        }
+        ReservationManager::getInstance().logLogin(role, name, password);
     }
     virtual bool showMenu() = 0;
     virtual ~User() = default;
@@ -566,6 +574,7 @@ public:
             saveCustomerAccounts(customerAccounts);
             cout << "Customer account created.\n";
             ReservationManager::getInstance().logLogin("Customer", name, password);
+            username = name;
         } else {
             bool credentialsValid = false;
             while (!credentialsValid) {
@@ -576,12 +585,12 @@ public:
                 if (customerAccounts.count(name) && customerAccounts[name] == password) {
                     credentialsValid = true;
                     ReservationManager::getInstance().logLogin("Customer", name, password);
+                    username = name;
                 } else {
                     cout << "Invalid credentials. Please try again.\n";
                 }
             }
         }
-        username = name;
     }
 
     bool showMenu() override {
